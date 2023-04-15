@@ -1,0 +1,142 @@
+apiVersion: datainfra.io/v1beta1
+kind: Pinot
+metadata:
+  name: pinot-test
+  namespace: pinot
+spec:
+
+  nodes:
+
+    - name: pinot-controller
+      kind: Statefulset
+      replicas: 1
+      nodeType: controller
+      k8sConfigGroupName: controller
+      pinotNodeConfigGroupName: controller
+    
+    - name: pinot-broker
+      kind: Statefulset
+      replicas: 1
+      nodeType: broker
+      k8sConfigGroupName: broker
+      pinotNodeConfigGroupName: broker
+
+    - name: pinot-server
+      kind: Statefulset
+      replicas: 1
+      nodeType: server
+      k8sConfigGroupName: server
+      pinotNodeConfigGroupName: server
+    
+    - name: pinot-minion
+      kind: Statefulset
+      replicas: 1
+      nodeType: minion
+      k8sConfigGroupName: minion
+      pinotNodeConfigGroupName: minion
+
+  deploymentOrder:
+  - controller
+  - broker
+  - server
+  - minion
+
+  k8sConfigGroups:
+  - name: controller
+    serviceAccountName: "controller"
+    image: apachepinot/pinot:latest
+    storageConfig:
+    - name: pinotcontroller
+      mountPath: "/var/pinot/controller/config"
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        storageClassName: "civo-volume"
+        resources:
+          requests:
+            storage: 1Gi
+
+  - name: broker
+    serviceAccountName: "broker"
+    image: apachepinot/pinot:latest
+    storageConfig:
+    - name: broker
+      mountPath: "/var/pinot/broker/config"
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        storageClassName: "civo-volume"
+        resources:
+          requests:
+            storage: 1Gi
+  
+  - name: server
+    serviceAccountName: "server"
+    image: apachepinot/pinot:latest
+    storageConfig:
+    - name: server
+      mountPath: "/var/pinot/server/config"
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        storageClassName: "civo-volume"
+        resources:
+          requests:
+            storage: 1Gi
+  
+  - name: minion
+    serviceAccountName: "minion"
+    image: apachepinot/pinot:latest
+    storageConfig:
+    - name: minion
+      mountPath: "/var/pinot/minion/config"
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        storageClassName: "civo-volume"
+        resources:
+          requests:
+            storage: 1Gi 
+
+  pinotNodeConfigGroups:
+
+  - name: controller
+    java_opts: "-XX:ActiveProcessorCount=2 -Xms256M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+                -Xlog:gc*:file=/opt/pinot/gc-pinot-controller.log -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml
+                -Dplugins.dir=/opt/pinot/plugins"
+    data: |-
+        controller.helix.cluster.name=pinot
+        controller.port=9000
+        controller.data.dir=/var/pinot/controller/data 
+        pinot.set.instance.id.to.hostname=true
+        controller.task.scheduler.enabled=true
+        controller.zk.str=pinot-zookeeper:2181
+
+  - name: broker
+    java_opts: "-XX:ActiveProcessorCount=2 -Xms256M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+                -Xlog:gc*:file=/opt/pinot/gc-pinot-broker.log -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml
+                -Dplugins.dir=/opt/pinot/plugins"
+    data: |-
+      pinot.broker.client.queryPort=8099
+      pinot.broker.routing.table.builder.class=random
+      pinot.set.instance.id.to.hostname=true
+
+  - name: server
+    java_opts: "-Xms512M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/opt/pinot/gc-pinot-server.log
+                -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml -Dplugins.dir=/opt/pinot/plugins"
+    data: |-
+      pinot.server.netty.port=8098
+      pinot.server.adminapi.port=8097
+      pinot.server.instance.dataDir=/var/pinot/server/data/index
+      pinot.server.instance.segmentTarDir=/var/pinot/server/data/segment
+      pinot.set.instance.id.to.hostname=true
+      pinot.server.instance.realtime.alloc.offheap=true
+  
+  - name: minion
+    java_opts: "-XX:ActiveProcessorCount=2 -Xms256M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+                -Xlog:gc*:file=/opt/pinot/gc-pinot-minion.log -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml
+                -Dplugins.dir=/opt/pinot/plugins"
+    data: |-
+      pinot.minion.port=9514
+      dataDir=/var/pinot/minion/data
+      pinot.set.instance.id.to.hostname=true
