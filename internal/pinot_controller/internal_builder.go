@@ -218,7 +218,6 @@ func (ib *internalBuilder) makeService(
 }
 
 func makeConfigMapName(pinotName, pinotNodeConfig string) string {
-	fmt.Println(pinotName)
 	return pinotName + "-" + pinotNodeConfig + "-" + "config"
 }
 
