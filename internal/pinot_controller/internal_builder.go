@@ -59,6 +59,10 @@ type ib interface {
 		k8sConfig *v1beta1.K8sConfig,
 		pinotNodeSpec *v1beta1.NodeSpec,
 	) *builder.BuilderStorageConfig
+	makeService(
+		k8sConfig *v1beta1.K8sConfig,
+		nodeSpec *v1beta1.NodeSpec,
+	) *builder.BuilderService
 }
 
 type internalBuilder struct {
@@ -138,7 +142,7 @@ func (ib *internalBuilder) makeStsOrDeploy(
 				Image:           k8sConfig.Image,
 				Args:            makeArgs(ib.pinot, pinotNodeSpec.NodeType),
 				ImagePullPolicy: k8sConfig.ImagePullPolicy,
-				Ports:           makePorts(k8sConfig, pinotNodeSpec.NodeType),
+				Ports:           k8sConfig.Port,
 				Env:             getEnv(ib.pinot, pinotNodeConfig, k8sConfig, configHash),
 				VolumeMounts:    getVolumeMounts(pinot, k8sConfig, pinotNodeSpec, storageConfig),
 				Resources:       k8sConfig.Resources,
@@ -151,7 +155,7 @@ func (ib *internalBuilder) makeStsOrDeploy(
 	deployment := builder.BuilderDeploymentStatefulSet{
 		CommonBuilder: builder.CommonBuilder{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pinotNodeSpec.K8sConfig + "-" + pinotNodeSpec.Name,
+				Name:      makeStsOrDeployName(pinotNodeSpec.Name, pinotNodeSpec.K8sConfig),
 				Namespace: ib.pinot.GetNamespace(),
 				Labels:    ib.commonLabels,
 			},
@@ -176,7 +180,7 @@ func (ib *internalBuilder) makePvc(
 	return &builder.BuilderStorageConfig{
 		CommonBuilder: builder.CommonBuilder{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      makePvcName(pinotNodeSpec.Name, k8sConfig.Name, sc.Name),
+				Name:      makePvcName(pinotNodeSpec.Name, k8sConfig.Name),
 				Namespace: ib.pinot.GetNamespace()},
 			Client:   ib.client,
 			CrObject: ib.pinot,
@@ -205,7 +209,7 @@ func (ib *internalBuilder) makeService(
 	return &builder.BuilderService{
 		CommonBuilder: builder.CommonBuilder{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      makeSvcName(ib.pinot.Name, k8sConfig.Name),
+				Name:      makeSvcName(nodeSpec.Name, nodeSpec.K8sConfig),
 				Namespace: ib.pinot.GetNamespace()},
 			Client:   ib.client,
 			CrObject: ib.pinot,
@@ -217,16 +221,20 @@ func (ib *internalBuilder) makeService(
 	}
 }
 
-func makeConfigMapName(pinotName, pinotNodeConfig string) string {
-	return pinotName + "-" + pinotNodeConfig + "-" + "config"
+func makeStsOrDeployName(nodeSpec, k8sConfig string) string {
+	return nodeSpec + "-" + k8sConfig
 }
 
-func makeSvcName(pinotName, k8sConfig string) string {
-	return pinotName + "-" + k8sConfig
+func makeConfigMapName(nodeSpec, pinotNodeConfig string) string {
+	return nodeSpec + "-" + pinotNodeConfig + "-" + "config"
 }
 
-func makePvcName(nodeName, k8sConfig, storageConfig string) string {
-	return nodeName + "-" + k8sConfig + "-" + storageConfig
+func makeSvcName(nodeSpec, k8sConfig string) string {
+	return nodeSpec + "-" + k8sConfig + "-" + "svc"
+}
+
+func makePvcName(nodeSpec, k8sConfig string) string {
+	return nodeSpec + "-" + k8sConfig + "-" + "pvc"
 }
 
 func getVolumeMounts(
@@ -286,7 +294,7 @@ func getVolume(
 				Name: sc.Name + "-" + "pvc",
 				VolumeSource: v1.VolumeSource{
 					PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
-						ClaimName: makePvcName(pinotNodeSpec.Name, k8sConfig.Name, sc.Name),
+						ClaimName: makePvcName(pinotNodeSpec.Name, k8sConfig.Name),
 					},
 				},
 			},
@@ -380,47 +388,4 @@ func getEnv(
 
 	envs = append(envs, hashHolder...)
 	return envs
-}
-
-func makePorts(k8sConfig *v1beta1.K8sConfig, nodeType v1beta1.PinotNodeType) []v1.ContainerPort {
-	switch nodeType {
-	case v1beta1.Broker:
-		return []v1.ContainerPort{
-			{
-				Name:          string(v1beta1.Broker),
-				ContainerPort: k8sConfig.Port,
-				Protocol:      v1.ProtocolTCP,
-			},
-		}
-	case v1beta1.Controller:
-		return []v1.ContainerPort{
-			{
-				Name:          string(v1beta1.Controller),
-				ContainerPort: k8sConfig.Port,
-				Protocol:      v1.ProtocolTCP,
-			},
-		}
-	case v1beta1.Server:
-		return []v1.ContainerPort{
-			{
-				Name:          "netty",
-				ContainerPort: 8098,
-				Protocol:      v1.ProtocolTCP,
-			},
-			{
-				Name:          "admin",
-				ContainerPort: k8sConfig.Port,
-				Protocol:      v1.ProtocolTCP,
-			},
-		}
-	case v1beta1.Minion:
-		return []v1.ContainerPort{
-			{
-				Name:          string(v1beta1.Minion),
-				ContainerPort: k8sConfig.Port,
-				Protocol:      v1.ProtocolTCP,
-			},
-		}
-	}
-	return nil
 }

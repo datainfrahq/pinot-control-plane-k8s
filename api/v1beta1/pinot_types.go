@@ -45,7 +45,7 @@ type ZookeeperConfig struct {
 type K8sConfig struct {
 	Name               string                  `json:"name"`
 	Volumes            []v1.Volume             `json:"volumes,omitempty"`
-	Port               int32                   `json:"port"`
+	Port               []v1.ContainerPort      `json:"port"`
 	VolumeMount        []v1.VolumeMount        `json:"volumeMount,omitempty"`
 	Image              string                  `json:"image"`
 	ImagePullPolicy    v1.PullPolicy           `json:"imagePullPolicy,omitempty"`

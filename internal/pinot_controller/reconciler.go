@@ -100,11 +100,10 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 		return err
 	}
 
-	// reconcile svc
-	// _, err = builder.ReconcileService()
-	// if err != nil {
-	// 	return err
-	// }
+	_, err = builder.ReconcileService()
+	if err != nil {
+		return err
+	}
 
 	// reconcile depoyment or statefulset
 	_, err = builder.ReconcileDeployOrSts()

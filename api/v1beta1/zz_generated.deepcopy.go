@@ -52,6 +52,11 @@ func (in *K8sConfig) DeepCopyInto(out *K8sConfig) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Port != nil {
+		in, out := &in.Port, &out.Port
+		*out = make([]v1.ContainerPort, len(*in))
+		copy(*out, *in)
+	}
 	if in.VolumeMount != nil {
 		in, out := &in.VolumeMount, &out.VolumeMount
 		*out = make([]v1.VolumeMount, len(*in))
