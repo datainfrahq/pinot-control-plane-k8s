@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- datainfra.io_v1beta1_pinot.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
