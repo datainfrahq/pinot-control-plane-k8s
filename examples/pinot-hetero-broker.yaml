@@ -1,14 +1,14 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-hetero
+  name: pinot-minion-stateless
 spec:
 
   external:
 
     zookeeper:
      spec:
-       zkAddress: pinot-zookeeper.default:2181
+       zkAddress: zkcr-zookeeper-headless.pinot:2181
 
   nodes:
 
@@ -70,7 +70,7 @@ spec:
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
-    image: apachepinot/pinot:latest-11-ms-openjdk
+    image: apachepinot/pinot:latest
     storageConfig:
     - name: pinotcontroller
       mountPath: "/var/pinot/controller/data"
@@ -104,7 +104,7 @@ spec:
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
-    image: apachepinot/pinot:latest-11-ms-openjdk
+    image: apachepinot/pinot:latest
     
   - name: broker-az2
     serviceAccountName: "default"
@@ -128,11 +128,11 @@ spec:
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
-    image: apachepinot/pinot:latest-11-ms-openjdk
+    image: apachepinot/pinot:latest
 
   - name: server
     serviceAccountName: "default"
-    image: apachepinot/pinot:latest-11-ms-openjdk
+    image: apachepinot/pinot:latest
     port:
     - name: netty
       containerPort: 8098
@@ -173,7 +173,7 @@ spec:
   
   - name: minion
     serviceAccountName: "default"
-    image: apachepinot/pinot:latest-11-ms-openjdk
+    image: apachepinot/pinot:latest
     port:
     - name: minion
       containerPort: 9514

@@ -1,14 +1,14 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot
+  name: pinot-simple
 spec:
 
   external:
 
     zookeeper:
      spec:
-       zkAddress: pinot-zookeeper.default:2181
+       zkAddress: zkcr-zookeeper-headless.pinot:2181
 
   nodes:
 
@@ -50,7 +50,10 @@ spec:
 
   - name: controller
     serviceAccountName: "default"
-    port: 9000  
+    port:
+    - name: controller 
+      containerPort: 9000
+      protocol: TCP  
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -68,7 +71,10 @@ spec:
 
   - name: broker
     serviceAccountName: "default"
-    port: 8099
+    port:
+    - name: broker 
+      containerPort: 8099
+      protocol: TCP
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -86,7 +92,10 @@ spec:
   
   - name: server
     serviceAccountName: "default"
-    port: 8097
+    port:
+    - name: server 
+      containerPort: 8097
+      protocol: TCP
     image: apachepinot/pinot:latest
     env:
     - name: LOG4J_CONSOLE_LEVEL
@@ -105,7 +114,10 @@ spec:
   - name: minion
     serviceAccountName: "default"
     image: apachepinot/pinot:latest
-    port: 9514
+    port:
+    - name: minion 
+      containerPort: 9514
+      protocol: TCP
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info

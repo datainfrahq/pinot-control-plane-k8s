@@ -8,7 +8,7 @@ spec:
 
     zookeeper:
      spec:
-       zkAddress: pinot-zookeeper.default:2181
+       zkAddress: zkcr-zookeeper-headless.pinot:2181
 
   nodes:
 
@@ -20,7 +20,7 @@ spec:
       pinotNodeConfig: controller
     
     - name: pinot-broker
-      kind: Statefulset
+      kind: Deployment
       replicas: 1
       nodeType: broker
       k8sConfig: broker
@@ -105,16 +105,6 @@ spec:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
     image: apachepinot/pinot:latest
-    storageConfig:
-    - name: broker
-      mountPath: "/var/pinot/broker/data"
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        storageClassName: "civo-volume"
-        resources:
-          requests:
-            storage: 1Gi
   
   - name: server-az1
     serviceAccountName: "default"

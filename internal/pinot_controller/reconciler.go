@@ -111,12 +111,6 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 		return err
 	}
 
-	// reconcile storage
-	_, err = builder.ReconcileStorage()
-	if err != nil {
-		return err
-	}
-
 	// reconcile store
 	if err := builder.ReconcileStore(); err != nil {
 		return err

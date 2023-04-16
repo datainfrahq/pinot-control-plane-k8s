@@ -148,11 +148,17 @@ func (ib *internalBuilder) makeStsOrDeploy(
 				Resources:       k8sConfig.Resources,
 			},
 		},
-		Volumes:            getVolume(ib.pinot, k8sConfig, storageConfig, pinotNodeSpec),
+		Volumes:            getVolume(ib.pinot, k8sConfig, pinotNodeSpec),
 		ServiceAccountName: k8sConfig.ServiceAccountName,
 	}
 
-	deployment := builder.BuilderDeploymentStatefulSet{
+	var pvcs []builder.BuilderStorageConfig
+
+	for _, sc := range *storageConfig {
+		pvcs = append(pvcs, *ib.makePvc(&sc, k8sConfig, pinotNodeSpec))
+	}
+
+	deploymentOrSts := builder.BuilderDeploymentStatefulSet{
 		CommonBuilder: builder.CommonBuilder{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      makeStsOrDeployName(pinotNodeSpec.Name, pinotNodeSpec.K8sConfig),
@@ -163,13 +169,14 @@ func (ib *internalBuilder) makeStsOrDeploy(
 			CrObject: ib.pinot,
 			OwnerRef: *ib.ownerRef,
 		},
-		Replicas: int32(pinotNodeSpec.Replicas),
-		Labels:   ib.commonLabels,
-		Kind:     pinotNodeSpec.Kind,
-		PodSpec:  &podSpec,
+		Replicas:            int32(pinotNodeSpec.Replicas),
+		Labels:              ib.commonLabels,
+		Kind:                pinotNodeSpec.Kind,
+		PodSpec:             &podSpec,
+		VolumeClaimTemplate: pvcs,
 	}
 
-	return &deployment
+	return &deploymentOrSts
 }
 
 func (ib *internalBuilder) makePvc(
@@ -180,7 +187,7 @@ func (ib *internalBuilder) makePvc(
 	return &builder.BuilderStorageConfig{
 		CommonBuilder: builder.CommonBuilder{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      makePvcName(pinotNodeSpec.Name, k8sConfig.Name, sc.Name),
+				Name:      makePvcName(pinotNodeSpec.Name),
 				Namespace: ib.pinot.GetNamespace()},
 			Client:   ib.client,
 			CrObject: ib.pinot,
@@ -233,8 +240,8 @@ func makeSvcName(nodeSpec, k8sConfig string) string {
 	return nodeSpec + "-" + k8sConfig + "-" + "svc"
 }
 
-func makePvcName(nodeSpec, k8sConfig, scName string) string {
-	return nodeSpec + "-" + k8sConfig + "-" + scName + "pvc"
+func makePvcName(nodeSpec string) string {
+	return nodeSpec + "-" + "pvc"
 }
 
 func getVolumeMounts(
@@ -250,7 +257,7 @@ func getVolumeMounts(
 			volumeMount,
 			v1.VolumeMount{
 				MountPath: sc.MountPath,
-				Name:      makePvcName(pinotNodeSpec.Name, k8sConfig.Name, sc.Name),
+				Name:      makePvcName(pinotNodeSpec.Name),
 			},
 		)
 	}
@@ -283,33 +290,22 @@ func getVolumeMounts(
 func getVolume(
 	pinot *v1beta1.Pinot,
 	k8sConfig *v1beta1.K8sConfig,
-	storageConfig *[]v1beta1.StorageConfig,
 	pinotNodeSpec *v1beta1.NodeSpec,
 ) []v1.Volume {
 	var volumeHolder = []v1.Volume{}
 
-	for _, sc := range *storageConfig {
-		volumeHolder = append(volumeHolder,
-			v1.Volume{
-				Name: makePvcName(pinotNodeSpec.Name, k8sConfig.Name, sc.Name),
-				VolumeSource: v1.VolumeSource{
-					PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
-						ClaimName: makePvcName(pinotNodeSpec.Name, k8sConfig.Name, sc.Name),
+	volumeHolder = append(volumeHolder,
+		v1.Volume{
+			Name: makeConfigMapName(pinot.Name, pinotNodeSpec.PinotNodeConfig),
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: makeConfigMapName(pinot.Name, pinotNodeSpec.PinotNodeConfig),
 					},
 				},
 			},
-			v1.Volume{
-				Name: makeConfigMapName(pinot.Name, pinotNodeSpec.PinotNodeConfig),
-				VolumeSource: v1.VolumeSource{
-					ConfigMap: &v1.ConfigMapVolumeSource{
-						LocalObjectReference: v1.LocalObjectReference{
-							Name: makeConfigMapName(pinot.Name, pinotNodeSpec.PinotNodeConfig),
-						},
-					},
-				},
-			},
-		)
-	}
+		},
+	)
 
 	volumeHolder = append(volumeHolder, k8sConfig.Volumes...)
 	return volumeHolder

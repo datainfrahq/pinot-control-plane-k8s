@@ -8,7 +8,7 @@ spec:
 
     zookeeper:
      spec:
-       zkAddress: pinot-zookeeper.default:2181
+       zkAddress: zkcr-zookeeper-headless.pinot:2181
 
   nodes:
 
@@ -21,7 +21,7 @@ spec:
     
     - name: pinot-broker
       kind: Deployment
-      replicas: 1
+      replicas: 2
       nodeType: broker
       k8sConfig: broker
       pinotNodeConfig: broker
@@ -51,7 +51,7 @@ spec:
   - name: controller
     serviceAccountName: "default"
     port:
-    - name: minion
+    - name: controller
       containerPort: 9000
       protocol: TCP
     env:
