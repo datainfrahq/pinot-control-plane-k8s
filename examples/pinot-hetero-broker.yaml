@@ -70,7 +70,7 @@ spec:
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
-    image: apachepinot/pinot:latest
+    image: apachepinot/pinot:latest-11-ms-openjdk
     storageConfig:
     - name: pinotcontroller
       mountPath: "/var/pinot/controller/data"
@@ -104,18 +104,8 @@ spec:
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
-    image: apachepinot/pinot:latest
-    storageConfig:
-    - name: broker
-      mountPath: "/var/pinot/broker/data"
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        storageClassName: "civo-volume"
-        resources:
-          requests:
-            storage: 1Gi
-
+    image: apachepinot/pinot:latest-11-ms-openjdk
+    
   - name: broker-az2
     serviceAccountName: "default"
     port:
@@ -138,21 +128,11 @@ spec:
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
-    image: apachepinot/pinot:latest
-    storageConfig:
-    - name: broker
-      mountPath: "/var/pinot/broker/data"
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        storageClassName: "civo-volume"
-        resources:
-          requests:
-            storage: 1Gi
+    image: apachepinot/pinot:latest-11-ms-openjdk
 
   - name: server
     serviceAccountName: "default"
-    image: apachepinot/pinot:latest
+    image: apachepinot/pinot:latest-11-ms-openjdk
     port:
     - name: netty
       containerPort: 8098
@@ -193,7 +173,7 @@ spec:
   
   - name: minion
     serviceAccountName: "default"
-    image: apachepinot/pinot:latest
+    image: apachepinot/pinot:latest-11-ms-openjdk
     port:
     - name: minion
       containerPort: 9514
@@ -201,16 +181,7 @@ spec:
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
-    storageConfig:
-    - name: minion
-      mountPath: "/var/pinot/minion/data"
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        storageClassName: "civo-volume"
-        resources:
-          requests:
-            storage: 1Gi 
+     
 
   pinotNodeConfig:
 

@@ -3,7 +3,7 @@ module github.com/datainfrahq/pinot-operator
 go 1.19
 
 require (
-	github.com/datainfrahq/operator-runtime v0.0.0-20230416152748-d187169f7fc7
+	github.com/datainfrahq/operator-runtime v0.0.0-20230416181440-3d708a583b66
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1

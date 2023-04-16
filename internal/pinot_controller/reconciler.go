@@ -108,7 +108,7 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 	// reconcile depoyment or statefulset
 	_, err = builder.ReconcileDeployOrSts()
 	if err != nil {
-		return err
+		//return err
 	}
 
 	// reconcile storage
