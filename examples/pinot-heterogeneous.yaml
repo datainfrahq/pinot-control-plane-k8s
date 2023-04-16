@@ -1,8 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-test
-  namespace: pinot
+  name: pinot-hetero
 spec:
 
   external:
@@ -22,6 +21,13 @@ spec:
     
     - name: pinot-broker
       kind: Statefulset
+      replicas: 1
+      nodeType: broker
+      k8sConfig: broker
+      pinotNodeConfig: broker
+
+    - name: pinot-broker-new
+      kind: Deployment
       replicas: 1
       nodeType: broker
       k8sConfig: broker

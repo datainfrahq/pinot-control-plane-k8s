@@ -23,11 +23,11 @@ import (
 
 // PinotSpec defines the desired state of Pinot
 type PinotSpec struct {
-	DeploymentOrder       []PinotNodeType         `json:"deploymentOrder"`
-	External              ExternalSpec            `json:"external,omitempty"`
-	K8sConfigGroups       []K8sConfigGroups       `json:"k8sConfigGroups"`
-	PinotNodeConfigGroups []PinotNodeConfigGroups `json:"pinotNodeConfigGroups"`
-	Nodes                 []NodeSpec              `json:"nodes"`
+	DeploymentOrder []PinotNodeType   `json:"deploymentOrder"`
+	External        ExternalSpec      `json:"external,omitempty"`
+	K8sConfig       []K8sConfig       `json:"k8sConfig"`
+	PinotNodeConfig []PinotNodeConfig `json:"pinotNodeConfig"`
+	Nodes           []NodeSpec        `json:"nodes"`
 }
 
 type ExternalSpec struct {
@@ -39,10 +39,10 @@ type ZookeeperSpec struct {
 }
 
 type ZookeeperConfig struct {
-	Data string `json:"data"`
+	ZkAddress string `json:"zkAddress"`
 }
 
-type K8sConfigGroups struct {
+type K8sConfig struct {
 	Name               string                  `json:"name"`
 	Volumes            []v1.Volume             `json:"volumes,omitempty"`
 	VolumeMount        []v1.VolumeMount        `json:"volumeMount,omitempty"`
@@ -69,7 +69,7 @@ type StorageConfig struct {
 	PvcSpec   v1.PersistentVolumeClaimSpec `json:"spec"`
 }
 
-type PinotNodeConfigGroups struct {
+type PinotNodeConfig struct {
 	Name     string `json:"name"`
 	JavaOpts string `json:"java_opts"`
 	Data     string `json:"data"`
@@ -85,12 +85,12 @@ const (
 )
 
 type NodeSpec struct {
-	Name                     string        `json:"name"`
-	Kind                     string        `json:"kind"`
-	NodeType                 PinotNodeType `json:"nodeType"`
-	Replicas                 int           `json:"replicas"`
-	K8sConfigGroupName       string        `json:"k8sConfigGroupName"`
-	PinotNodeConfigGroupName string        `json:"pinotNodeConfigGroupName"`
+	Name            string        `json:"name"`
+	Kind            string        `json:"kind"`
+	NodeType        PinotNodeType `json:"nodeType"`
+	Replicas        int           `json:"replicas"`
+	K8sConfig       string        `json:"k8sConfig"`
+	PinotNodeConfig string        `json:"pinotNodeConfig"`
 }
 
 // PinotStatus defines the observed state of Pinot

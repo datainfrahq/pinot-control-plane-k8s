@@ -21,7 +21,9 @@ import (
 	"fmt"
 
 	"github.com/datainfrahq/operator-runtime/builder"
+	"github.com/datainfrahq/operator-runtime/utils"
 	"github.com/datainfrahq/pinot-operator/api/v1beta1"
+	v1 "k8s.io/api/core/v1"
 )
 
 func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
@@ -39,9 +41,9 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 	nodeSpecs := getAllNodeSpecForNodeType(pt)
 
 	pinotConfigMap := []builder.BuilderConfigMap{}
-	// pinotConfigMapHash := []utils.ConfigMapHash{}
-	// pinotDeploymentOrStatefulset := []builder.BuilderDeploymentStatefulSet{}
-	// pinotStorage := []builder.BuilderStorageConfig{}
+	pinotConfigMapHash := []utils.ConfigMapHash{}
+	pinotDeploymentOrStatefulset := []builder.BuilderDeploymentStatefulSet{}
+	pinotStorage := []builder.BuilderStorageConfig{}
 	// pinotService := []builder.BuilderService{}
 
 	// // append external config and hash to configmap builder
@@ -61,21 +63,28 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 	for _, nodeSpec := range nodeSpecs {
 
 		ib = newInternalBuilder(pt, r.Client, &nodeSpec.NodeSpec, getOwnerRef)
-		for _, pinotConfig := range pt.Spec.PinotNodeConfigGroups {
+		for _, pinotConfig := range pt.Spec.PinotNodeConfig {
 
-			if nodeSpec.NodeSpec.PinotNodeConfigGroupName == pinotConfig.Name {
+			if nodeSpec.NodeSpec.PinotNodeConfig == pinotConfig.Name {
 				cm := *ib.makeConfigMap(&pinotConfig, &nodeSpec.NodeSpec)
 				pinotConfigMap = append(pinotConfigMap, cm)
-				// pinotConfigMapHash = append(pinotConfigMapHash, utils.ConfigMapHash{Object: &v1.ConfigMap{Data: cm.Data, ObjectMeta: cm.ObjectMeta}})
-				// for _, k8sConfig := range pt.Spec.K8sConfig {
-				// 	if nodeSpec.NodeSpec.K8sConfig == k8sConfig.Name {
-				// 		pinotDeploymentOrStatefulset = append(pinotDeploymentOrStatefulset, *ib.makeStsOrDeploy(&nodeSpec.NodeSpec, &k8sConfig, &k8sConfig.StorageConfig, &pinotConfig, pinotConfigMapHash))
-				// 		pinotService = append(pinotService, *ib.makeService(&k8sConfig, &nodeSpec.NodeSpec))
-				// 		for _, sc := range k8sConfig.StorageConfig {
-				// 			pinotStorage = append(pinotStorage, *ib.makePvc(&sc, &k8sConfig, &nodeSpec.NodeSpec))
-				// 		}
-				// 	}
-				// }
+				pinotConfigMapHash = append(pinotConfigMapHash, utils.ConfigMapHash{Object: &v1.ConfigMap{Data: cm.Data, ObjectMeta: cm.ObjectMeta}})
+				for _, k8sConfig := range pt.Spec.K8sConfig {
+					if nodeSpec.NodeSpec.K8sConfig == k8sConfig.Name {
+						pinotDeploymentOrStatefulset = append(pinotDeploymentOrStatefulset, *ib.makeStsOrDeploy(
+							ib.pinot,
+							&pinotConfig,
+							&nodeSpec.NodeSpec,
+							&k8sConfig,
+							&k8sConfig.StorageConfig,
+							pinotConfigMapHash,
+						))
+						//pinotService = append(pinotService, *ib.makeService(&k8sConfig, &nodeSpec.NodeSpec))
+						for _, sc := range k8sConfig.StorageConfig {
+							pinotStorage = append(pinotStorage, *ib.makePvc(&sc, &k8sConfig, &nodeSpec.NodeSpec))
+						}
+					}
+				}
 			}
 		}
 	}
@@ -83,8 +92,8 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 	// construct builder
 	builder := builder.NewBuilder(
 		builder.ToNewBuilderConfigMap(pinotConfigMap),
-		// builder.ToNewBuilderDeploymentStatefulSet(pinotDeploymentOrStatefulset),
-		// builder.ToNewBuilderStorageConfig(pinotStorage),
+		builder.ToNewBuilderDeploymentStatefulSet(pinotDeploymentOrStatefulset),
+		builder.ToNewBuilderStorageConfig(pinotStorage),
 		builder.ToNewBuilderRecorder(builder.BuilderRecorder{Recorder: r.Recorder, ControllerName: "pinotOperator"}),
 		builder.ToNewBuilderContext(builder.BuilderContext{Context: ctx}),
 		// builder.ToNewBuilderService(pinotService),
@@ -106,17 +115,21 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 	// 	return err
 	// }
 
-	// // reconcile depoyment or statefulset
-	// _, err = builder.ReconcileDeployOrSts()
-	// if err != nil {
-	// 	return err
-	// }
+	// reconcile depoyment or statefulset
+	_, err = builder.ReconcileDeployOrSts()
+	if err != nil {
+		return err
+	}
 
-	// // reconcile storage
-	// _, err = builder.ReconcileStorage()
-	// if err != nil {
-	// 	return err
-	// }
+	for _, sts := range pinotDeploymentOrStatefulset {
+		fmt.Println(sts.ObjectMeta.Name)
+	}
+
+	// reconcile storage
+	_, err = builder.ReconcileStorage()
+	if err != nil {
+		return err
+	}
 
 	// reconcile store
 	if err := builder.ReconcileStore(); err != nil {

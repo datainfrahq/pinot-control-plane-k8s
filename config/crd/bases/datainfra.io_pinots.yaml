@@ -45,10 +45,10 @@ spec:
                     properties:
                       spec:
                         properties:
-                          data:
+                          zkAddress:
                             type: string
                         required:
-                        - data
+                        - zkAddress
                         type: object
                     required:
                     - spec
@@ -56,7 +56,7 @@ spec:
                 required:
                 - zookeeper
                 type: object
-              k8sConfigGroups:
+              k8sConfig:
                 items:
                   properties:
                     env:
@@ -2578,7 +2578,7 @@ spec:
               nodes:
                 items:
                   properties:
-                    k8sConfigGroupName:
+                    k8sConfig:
                       type: string
                     kind:
                       type: string
@@ -2586,20 +2586,20 @@ spec:
                       type: string
                     nodeType:
                       type: string
-                    pinotNodeConfigGroupName:
+                    pinotNodeConfig:
                       type: string
                     replicas:
                       type: integer
                   required:
-                  - k8sConfigGroupName
+                  - k8sConfig
                   - kind
                   - name
                   - nodeType
-                  - pinotNodeConfigGroupName
+                  - pinotNodeConfig
                   - replicas
                   type: object
                 type: array
-              pinotNodeConfigGroups:
+              pinotNodeConfig:
                 items:
                   properties:
                     data:
@@ -2616,9 +2616,9 @@ spec:
                 type: array
             required:
             - deploymentOrder
-            - k8sConfigGroups
+            - k8sConfig
             - nodes
-            - pinotNodeConfigGroups
+            - pinotNodeConfig
             type: object
           status:
             description: PinotStatus defines the observed state of Pinot

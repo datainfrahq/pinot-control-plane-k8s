@@ -19,14 +19,31 @@ import (
 	"fmt"
 
 	"github.com/datainfrahq/operator-runtime/builder"
+	"github.com/datainfrahq/operator-runtime/utils"
 	"github.com/datainfrahq/pinot-operator/api/v1beta1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	MinionConfigMapVolumeMountPath     = "/var/pinot/minion/config"
+	ServerConfigMapVolumeMountPath     = "/var/pinot/server/config"
+	ControllerConfigMapVolumeMountPath = "/var/pinot/controller/config"
+	BrokerConfigMapVolumeMountPath     = "/var/pinot/broker/config"
+	MinionConfName                     = "pinot-minion.conf"
+	ServerConfName                     = "pinot-server.conf"
+	ControllerConfName                 = "pinot-controller.conf"
+	BrokerConfName                     = "pinot-broker.conf"
+	StartBroker                        = "StartBroker"
+	StartController                    = "StartController"
+	StartServer                        = "StartServer"
+	StartMinion                        = "StartMinion"
+)
+
 type ib interface {
-	makeConfigMap(pinotNodeConfigGroupSpec *v1beta1.PinotNodeConfigGroups, pinotNodeSpec *v1beta1.NodeSpec) *builder.BuilderConfigMap
+	makeConfigMap(pinotNodeConfigGroupSpec *v1beta1.PinotNodeConfig, pinotNodeSpec *v1beta1.NodeSpec) *builder.BuilderConfigMap
 }
 
 type internalBuilder struct {
@@ -50,27 +67,28 @@ func newInternalBuilder(
 }
 
 func (ib *internalBuilder) makeConfigMap(
-	pinotNodeConfigGroupSpec *v1beta1.PinotNodeConfigGroups,
+	pinotNodeConfigGroupSpec *v1beta1.PinotNodeConfig,
 	pinotNodeSpec *v1beta1.NodeSpec,
 ) *builder.BuilderConfigMap {
 
 	var data map[string]string
+
 	if pinotNodeSpec.NodeType == v1beta1.Controller {
 		data = map[string]string{
-			"pinot-controller.conf": fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
+			ControllerConfName: fmt.Sprintf("%s\n%s\n%s", pinotNodeConfigGroupSpec.Data, "controller.zk.str="+ib.pinot.Spec.External.Zookeeper.Spec.ZkAddress, "controller.helix.cluster.name="+ib.pinot.Name),
 		}
 	} else if pinotNodeSpec.NodeType == v1beta1.Broker {
 		data = map[string]string{
-			"pinot-broker.conf": fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
+			BrokerConfName: fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
 		}
 
 	} else if pinotNodeSpec.NodeType == v1beta1.Minion {
 		data = map[string]string{
-			"pinot-minion.conf": fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
+			MinionConfName: fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
 		}
 	} else if pinotNodeSpec.NodeType == v1beta1.Server {
 		data = map[string]string{
-			"pinot-server.conf": fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
+			ServerConfName: fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
 		}
 	}
 	return &builder.BuilderConfigMap{
@@ -88,17 +106,283 @@ func (ib *internalBuilder) makeConfigMap(
 	}
 }
 
+func (ib *internalBuilder) makeStsOrDeploy(
+	pinot *v1beta1.Pinot,
+	pinotNodeConfig *v1beta1.PinotNodeConfig,
+	pinotNodeSpec *v1beta1.NodeSpec,
+	k8sConfig *v1beta1.K8sConfig,
+	storageConfig *[]v1beta1.StorageConfig,
+	configHash []utils.ConfigMapHash,
+) *builder.BuilderDeploymentStatefulSet {
+
+	podSpec := v1.PodSpec{
+		NodeSelector: k8sConfig.NodeSelector,
+		Containers: []v1.Container{
+			{
+				Name:            pinotNodeSpec.Name + "-" + string(pinotNodeSpec.NodeType),
+				Image:           k8sConfig.Image,
+				Args:            makeArgs(ib.pinot, pinotNodeSpec.NodeType),
+				ImagePullPolicy: k8sConfig.ImagePullPolicy,
+				Ports:           makePorts(pinotNodeSpec.NodeType),
+				Env:             getEnv(ib.pinot, pinotNodeConfig, k8sConfig, configHash),
+				VolumeMounts:    getVolumeMounts(pinot, k8sConfig, pinotNodeSpec, storageConfig),
+				Resources:       k8sConfig.Resources,
+			},
+		},
+		Volumes:            getVolume(ib.pinot, k8sConfig, storageConfig, pinotNodeSpec),
+		ServiceAccountName: k8sConfig.ServiceAccountName,
+	}
+
+	deployment := builder.BuilderDeploymentStatefulSet{
+		CommonBuilder: builder.CommonBuilder{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pinotNodeSpec.K8sConfig + "-" + pinotNodeSpec.Name,
+				Namespace: ib.pinot.GetNamespace(),
+				Labels:    ib.commonLabels,
+			},
+			Client:   ib.client,
+			CrObject: ib.pinot,
+			OwnerRef: *ib.ownerRef,
+		},
+		Replicas: int32(pinotNodeSpec.Replicas),
+		Labels:   ib.commonLabels,
+		Kind:     pinotNodeSpec.Kind,
+		PodSpec:  &podSpec,
+	}
+
+	return &deployment
+}
+
+func (ib *internalBuilder) makePvc(
+	sc *v1beta1.StorageConfig,
+	k8sConfig *v1beta1.K8sConfig,
+	pinotNodeSpec *v1beta1.NodeSpec,
+) *builder.BuilderStorageConfig {
+	return &builder.BuilderStorageConfig{
+		CommonBuilder: builder.CommonBuilder{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      makePvcName(pinotNodeSpec.Name, k8sConfig.Name, sc.Name),
+				Namespace: ib.pinot.GetNamespace()},
+			Client:   ib.client,
+			CrObject: ib.pinot,
+			Labels:   ib.commonLabels,
+			OwnerRef: *ib.ownerRef,
+		},
+		PvcSpec: &sc.PvcSpec,
+	}
+}
+
 func makeLabels(pt *v1beta1.Pinot, nodeSpec *v1beta1.NodeSpec) map[string]string {
 
 	return map[string]string{
 		"app":              "pinot",
 		"custom_resource":  pt.Name,
 		"nodeType":         string(nodeSpec.NodeType),
-		"pinotConfigGroup": nodeSpec.PinotNodeConfigGroupName,
-		"k8sConfigGroup":   nodeSpec.K8sConfigGroupName,
+		"pinotConfigGroup": nodeSpec.PinotNodeConfig,
+		"k8sConfigGroup":   nodeSpec.K8sConfig,
 	}
 }
 
-func makeConfigMapName(nodeName, configGroupName string) string {
-	return nodeName + "-" + configGroupName + "-" + "config"
+func makeConfigMapName(pinotName, pinotNodeConfig string) string {
+	return pinotName + "-" + pinotNodeConfig + "-" + "config"
+}
+
+func makePvcName(nodeName, k8sConfig, storageConfig string) string {
+	return nodeName + "-" + k8sConfig + "-" + storageConfig
+}
+
+func getVolumeMounts(
+	pinot *v1beta1.Pinot,
+	k8sConfig *v1beta1.K8sConfig,
+	pinotNodeSpec *v1beta1.NodeSpec,
+	storageConfig *[]v1beta1.StorageConfig,
+) []v1.VolumeMount {
+
+	var volumeMount = []v1.VolumeMount{}
+	for _, sc := range *storageConfig {
+		volumeMount = append(
+			volumeMount,
+			v1.VolumeMount{
+				MountPath: sc.MountPath,
+				Name:      sc.Name + "-" + "pvc",
+			},
+		)
+	}
+
+	var mountPath string
+
+	switch pinotNodeSpec.NodeType {
+	case v1beta1.Broker:
+		mountPath = BrokerConfigMapVolumeMountPath
+	case v1beta1.Controller:
+		mountPath = ControllerConfigMapVolumeMountPath
+	case v1beta1.Server:
+		mountPath = ServerConfigMapVolumeMountPath
+	case v1beta1.Minion:
+		mountPath = MinionConfigMapVolumeMountPath
+	}
+
+	volumeMount = append(
+		volumeMount,
+		v1.VolumeMount{
+			MountPath: mountPath,
+			Name:      k8sConfig.Name + "-" + "cm",
+		},
+	)
+
+	volumeMount = append(volumeMount, k8sConfig.VolumeMount...)
+	return volumeMount
+}
+
+func getVolume(
+	pinot *v1beta1.Pinot,
+	k8sConfig *v1beta1.K8sConfig,
+	storageConfig *[]v1beta1.StorageConfig,
+	pinotNodeSpec *v1beta1.NodeSpec,
+) []v1.Volume {
+	var volumeHolder = []v1.Volume{}
+
+	for _, sc := range *storageConfig {
+		volumeHolder = append(volumeHolder,
+			v1.Volume{
+				Name: sc.Name + "-" + "pvc",
+				VolumeSource: v1.VolumeSource{
+					PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+						ClaimName: makePvcName(pinotNodeSpec.Name, k8sConfig.Name, sc.Name),
+					},
+				},
+			},
+			v1.Volume{
+				Name: k8sConfig.Name + "-" + "cm",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: makeConfigMapName(pinot.Name, pinotNodeSpec.PinotNodeConfig),
+						},
+					},
+				},
+			},
+		)
+	}
+
+	volumeHolder = append(volumeHolder, k8sConfig.Volumes...)
+	return volumeHolder
+}
+
+func makeArgs(
+	pinot *v1beta1.Pinot,
+	nodeType v1beta1.PinotNodeType,
+) []string {
+	switch nodeType {
+	case v1beta1.Broker:
+		return []string{
+			StartBroker,
+			"-clusterName",
+			pinot.Name,
+			"-zkAddress",
+			pinot.Spec.External.Zookeeper.Spec.ZkAddress,
+			"-configFileName",
+			BrokerConfigMapVolumeMountPath + "/" + BrokerConfName,
+		}
+	case v1beta1.Controller:
+		return []string{
+			StartController,
+			"-clusterName",
+			pinot.Name,
+			"-configFileName",
+			ControllerConfigMapVolumeMountPath + "/" + ControllerConfName,
+		}
+	case v1beta1.Server:
+		return []string{
+			StartServer,
+			"-clusterName",
+			pinot.Name,
+			"-zkAddress",
+			pinot.Spec.External.Zookeeper.Spec.ZkAddress,
+			"-configFileName",
+			ServerConfigMapVolumeMountPath + "/" + ServerConfName,
+		}
+	case v1beta1.Minion:
+		return []string{
+			StartMinion,
+			"-clusterName",
+			pinot.Name,
+			"-zkAddress",
+			pinot.Spec.External.Zookeeper.Spec.ZkAddress,
+			"-configFileName",
+			MinionConfigMapVolumeMountPath + "/" + MinionConfName,
+		}
+	default:
+		return nil
+	}
+}
+
+func getEnv(
+	pinot *v1beta1.Pinot,
+	pinotNodeConfig *v1beta1.PinotNodeConfig,
+	k8sConfigGroup *v1beta1.K8sConfig,
+	configHash []utils.ConfigMapHash,
+) []v1.EnvVar {
+
+	var envs, hashHolder []v1.EnvVar
+
+	jvmOpts := v1.EnvVar{Name: "JAVA_OPTS", Value: pinotNodeConfig.JavaOpts}
+
+	envs = append(envs, k8sConfigGroup.Env...)
+
+	envs = append(envs, jvmOpts)
+
+	hashes, _ := utils.MakeConfigMapHash(configHash)
+
+	for _, cmhash := range hashes {
+		if makeConfigMapName(pinot.Name, pinotNodeConfig.Name) == cmhash.Name {
+			hashHolder = append(hashHolder, v1.EnvVar{Name: cmhash.Name, Value: cmhash.HashVaule})
+		}
+	}
+
+	envs = append(envs, hashHolder...)
+	return envs
+}
+
+func makePorts(nodeType v1beta1.PinotNodeType) []v1.ContainerPort {
+	switch nodeType {
+	case v1beta1.Broker:
+		return []v1.ContainerPort{
+			{
+				Name:          string(v1beta1.Broker),
+				ContainerPort: 8099,
+				Protocol:      v1.ProtocolTCP,
+			},
+		}
+	case v1beta1.Controller:
+		return []v1.ContainerPort{
+			{
+				Name:          string(v1beta1.Controller),
+				ContainerPort: 9000,
+				Protocol:      v1.ProtocolTCP,
+			},
+		}
+	case v1beta1.Server:
+		return []v1.ContainerPort{
+			{
+				Name:          "netty",
+				ContainerPort: 8098,
+				Protocol:      v1.ProtocolTCP,
+			},
+			{
+				Name:          "admin",
+				ContainerPort: 8097,
+				Protocol:      v1.ProtocolTCP,
+			},
+		}
+	case v1beta1.Minion:
+		return []v1.ContainerPort{
+			{
+				Name:          "minion",
+				ContainerPort: 9514,
+				Protocol:      v1.ProtocolTCP,
+			},
+		}
+	}
+	return nil
 }

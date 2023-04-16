@@ -1,8 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-test
-  namespace: pinot
+  name: pinot
 spec:
 
   external:
