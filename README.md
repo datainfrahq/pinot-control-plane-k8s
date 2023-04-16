@@ -13,7 +13,7 @@ Kubernetes Operator For Apache Pinot
 
 </div>
 
-Pinot Kubernetes Operator for deploying and managing heterogenous apache pinot kubernetes clusters. This operator isn't just any other operator it based on [Dsoi-Spec](https://github.com/datainfrahq/dsoi-spec) and is built using [operator-runtime](https://github.com/datainfrahq/operator-runtime). The goal of this project is to build a control plane for managing apache pinot clusters. 
+Pinot Kubernetes Operator for deploying and managing heterogenous apache pinot kubernetes clusters. This operator isn't just any other operator it based on [Dsoi-Spec](https://github.com/datainfrahq/dsoi-spec) and is built using [operator-runtime](https://github.com/datainfrahq/operator-runtime). The goal of this project is to build a control plane for managing apache pinot clusters. The underlying controllers are built on conditions ie orthogonal concepts and not state machines. 
 
 ### Getting Started With Kustomize
 
@@ -22,7 +22,7 @@ make deploy
 kubectl create ns pinot
 helm install zk-operator pravega/zookeeper-operator --version=0.2.15 -n pinot 
 helm install zkcr pravega/zookeeper --version=0.2.15 --set replicas=1 --persistence.storageClassName= -n pinot
-k apply -f examples/pinot-simple.yaml -n pinot
+kubectl apply -f examples/pinot-simple.yaml -n pinot
 ```
 ### Note
 Apache®, Apache Pinot, Pinot® are either registered trademarks or trademarks of the Apache Software Foundation in the United States and/or other countries. This project, pinot-operator, is not an Apache Software Foundation project.
