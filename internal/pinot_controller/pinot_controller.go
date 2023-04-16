@@ -57,6 +57,13 @@ func NewPinotReconciler(mgr ctrl.Manager) *PinotReconciler {
 //+kubebuilder:rbac:groups=datainfra.io,resources=pinots,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=datainfra.io,resources=pinots/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=datainfra.io,resources=pinots/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;patch
+//+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 
 func (r *PinotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logr := log.FromContext(ctx)
@@ -74,7 +81,7 @@ func (r *PinotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		logr.Error(err, err.Error())
 		return ctrl.Result{}, err
 	} else {
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: r.ReconcileWait}, nil
 	}
 }
 

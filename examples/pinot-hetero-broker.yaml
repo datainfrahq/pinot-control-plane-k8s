@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-hetero
+  name: pinot-hetero-broker
 spec:
 
   external:
@@ -57,6 +57,7 @@ spec:
 
   - name: controller
     serviceAccountName: "default"
+    port: 9000
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -78,6 +79,7 @@ spec:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
     image: apachepinot/pinot:latest
+    port: 8099
     storageConfig:
     - name: broker
       mountPath: "/var/pinot/broker/data"
@@ -91,6 +93,7 @@ spec:
   
   - name: server
     serviceAccountName: "default"
+    port: 8097
     image: apachepinot/pinot:latest
     env:
     - name: LOG4J_CONSOLE_LEVEL
@@ -109,6 +112,7 @@ spec:
   - name: minion
     serviceAccountName: "default"
     image: apachepinot/pinot:latest
+    port: 9514
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info

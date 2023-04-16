@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot
+  name: pinot-hetero
 spec:
 
   external:
@@ -26,12 +26,19 @@ spec:
       k8sConfig: broker
       pinotNodeConfig: broker
 
-    - name: pinot-server
+    - name: pinot-server-az1
       kind: Statefulset
       replicas: 1
       nodeType: server
-      k8sConfig: server
-      pinotNodeConfig: server
+      k8sConfig: server-az1
+      pinotNodeConfig: server-az1
+
+    - name: pinot-server-az2
+      kind: Statefulset
+      replicas: 1
+      nodeType: server
+      k8sConfig: server-az1
+      pinotNodeConfig: server-az2
     
     - name: pinot-minion
       kind: Statefulset
@@ -50,7 +57,13 @@ spec:
 
   - name: controller
     serviceAccountName: "default"
-    port: 9000  
+    port: 9000
+    service:
+      type: ClusterIP
+      ports:
+      - protocol: TCP
+        port: 9000
+        targetPort: 9000  
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -69,6 +82,12 @@ spec:
   - name: broker
     serviceAccountName: "default"
     port: 8099
+    service:
+      type: ClusterIP
+      ports:
+      - protocol: TCP
+        port: 8099
+        targetPort: 8099
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -84,10 +103,40 @@ spec:
           requests:
             storage: 1Gi
   
-  - name: server
+  - name: server-az1
     serviceAccountName: "default"
-    port: 8097
     image: apachepinot/pinot:latest
+    port: 8097
+    service:
+      type: ClusterIP
+      ports:
+      - protocol: TCP
+        port: 80
+        targetPort: 8097
+    env:
+    - name: LOG4J_CONSOLE_LEVEL
+      value: info
+    storageConfig:
+    - name: server
+      mountPath: "/var/pinot/server/data"
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        storageClassName: "civo-volume"
+        resources:
+          requests:
+            storage: 1Gi
+  
+  - name: server-az2
+    serviceAccountName: "default"
+    image: apachepinot/pinot:latest
+    port: 8097
+    service:
+      type: ClusterIP
+      ports:
+      - protocol: TCP
+        port: 80
+        targetPort: 8097
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -141,7 +190,18 @@ spec:
       pinot.broker.routing.table.builder.class=random
       pinot.set.instance.id.to.hostname=true
 
-  - name: server
+  - name: server-az1
+    java_opts: "-Xms512M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/opt/pinot/gc-pinot-server.log
+                -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml -Dplugins.dir=/opt/pinot/plugins"
+    data: |-
+      pinot.server.netty.port=8098
+      pinot.server.adminapi.port=8097
+      pinot.server.instance.dataDir=/var/pinot/server/data/index
+      pinot.server.instance.segmentTarDir=/var/pinot/server/data/segment
+      pinot.set.instance.id.to.hostname=true
+      pinot.server.instance.realtime.alloc.offheap=false
+  
+  - name: server-az2
     java_opts: "-Xms512M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/opt/pinot/gc-pinot-server.log
                 -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml -Dplugins.dir=/opt/pinot/plugins"
     data: |-

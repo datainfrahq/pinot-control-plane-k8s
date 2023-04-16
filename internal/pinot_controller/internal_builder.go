@@ -43,7 +43,22 @@ const (
 )
 
 type ib interface {
-	makeConfigMap(pinotNodeConfigGroupSpec *v1beta1.PinotNodeConfig, pinotNodeSpec *v1beta1.NodeSpec) *builder.BuilderConfigMap
+	makeConfigMap(
+		pinotNodeConfigGroupSpec *v1beta1.PinotNodeConfig,
+		pinotNodeSpec *v1beta1.NodeSpec) *builder.BuilderConfigMap
+	makeStsOrDeploy(
+		pinot *v1beta1.Pinot,
+		pinotNodeConfig *v1beta1.PinotNodeConfig,
+		pinotNodeSpec *v1beta1.NodeSpec,
+		k8sConfig *v1beta1.K8sConfig,
+		storageConfig *[]v1beta1.StorageConfig,
+		configHash []utils.ConfigMapHash,
+	) *builder.BuilderDeploymentStatefulSet
+	makePvc(
+		sc *v1beta1.StorageConfig,
+		k8sConfig *v1beta1.K8sConfig,
+		pinotNodeSpec *v1beta1.NodeSpec,
+	) *builder.BuilderStorageConfig
 }
 
 type internalBuilder struct {
@@ -67,7 +82,7 @@ func newInternalBuilder(
 }
 
 func (ib *internalBuilder) makeConfigMap(
-	pinotNodeConfigGroupSpec *v1beta1.PinotNodeConfig,
+	pinotNodeConfig *v1beta1.PinotNodeConfig,
 	pinotNodeSpec *v1beta1.NodeSpec,
 ) *builder.BuilderConfigMap {
 
@@ -75,26 +90,26 @@ func (ib *internalBuilder) makeConfigMap(
 
 	if pinotNodeSpec.NodeType == v1beta1.Controller {
 		data = map[string]string{
-			ControllerConfName: fmt.Sprintf("%s\n%s\n%s", pinotNodeConfigGroupSpec.Data, "controller.zk.str="+ib.pinot.Spec.External.Zookeeper.Spec.ZkAddress, "controller.helix.cluster.name="+ib.pinot.Name),
+			ControllerConfName: fmt.Sprintf("%s\n%s\n%s", pinotNodeConfig.Data, "controller.zk.str="+ib.pinot.Spec.External.Zookeeper.Spec.ZkAddress, "controller.helix.cluster.name="+ib.pinot.Name),
 		}
 	} else if pinotNodeSpec.NodeType == v1beta1.Broker {
 		data = map[string]string{
-			BrokerConfName: fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
+			BrokerConfName: fmt.Sprintf("%s", pinotNodeConfig.Data),
 		}
 
 	} else if pinotNodeSpec.NodeType == v1beta1.Minion {
 		data = map[string]string{
-			MinionConfName: fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
+			MinionConfName: fmt.Sprintf("%s", pinotNodeConfig.Data),
 		}
 	} else if pinotNodeSpec.NodeType == v1beta1.Server {
 		data = map[string]string{
-			ServerConfName: fmt.Sprintf("%s", pinotNodeConfigGroupSpec.Data),
+			ServerConfName: fmt.Sprintf("%s", pinotNodeConfig.Data),
 		}
 	}
 	return &builder.BuilderConfigMap{
 		CommonBuilder: builder.CommonBuilder{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      makeConfigMapName(ib.pinot.GetName(), pinotNodeConfigGroupSpec.Name),
+				Name:      makeConfigMapName(ib.pinot.GetName(), pinotNodeConfig.Name),
 				Namespace: ib.pinot.GetNamespace(),
 				Labels:    ib.commonLabels,
 			},
@@ -123,7 +138,7 @@ func (ib *internalBuilder) makeStsOrDeploy(
 				Image:           k8sConfig.Image,
 				Args:            makeArgs(ib.pinot, pinotNodeSpec.NodeType),
 				ImagePullPolicy: k8sConfig.ImagePullPolicy,
-				Ports:           makePorts(pinotNodeSpec.NodeType),
+				Ports:           makePorts(k8sConfig, pinotNodeSpec.NodeType),
 				Env:             getEnv(ib.pinot, pinotNodeConfig, k8sConfig, configHash),
 				VolumeMounts:    getVolumeMounts(pinot, k8sConfig, pinotNodeSpec, storageConfig),
 				Resources:       k8sConfig.Resources,
@@ -183,8 +198,32 @@ func makeLabels(pt *v1beta1.Pinot, nodeSpec *v1beta1.NodeSpec) map[string]string
 	}
 }
 
+func (ib *internalBuilder) makeService(
+	k8sConfig *v1beta1.K8sConfig,
+	nodeSpec *v1beta1.NodeSpec,
+) *builder.BuilderService {
+	return &builder.BuilderService{
+		CommonBuilder: builder.CommonBuilder{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      makeSvcName(ib.pinot.Name, k8sConfig.Name),
+				Namespace: ib.pinot.GetNamespace()},
+			Client:   ib.client,
+			CrObject: ib.pinot,
+			OwnerRef: *ib.ownerRef,
+			Labels:   ib.commonLabels,
+		},
+		SelectorLabels: ib.commonLabels,
+		ServiceSpec:    k8sConfig.Service,
+	}
+}
+
 func makeConfigMapName(pinotName, pinotNodeConfig string) string {
+	fmt.Println(pinotName)
 	return pinotName + "-" + pinotNodeConfig + "-" + "config"
+}
+
+func makeSvcName(pinotName, k8sConfig string) string {
+	return pinotName + "-" + k8sConfig
 }
 
 func makePvcName(nodeName, k8sConfig, storageConfig string) string {
@@ -344,13 +383,13 @@ func getEnv(
 	return envs
 }
 
-func makePorts(nodeType v1beta1.PinotNodeType) []v1.ContainerPort {
+func makePorts(k8sConfig *v1beta1.K8sConfig, nodeType v1beta1.PinotNodeType) []v1.ContainerPort {
 	switch nodeType {
 	case v1beta1.Broker:
 		return []v1.ContainerPort{
 			{
 				Name:          string(v1beta1.Broker),
-				ContainerPort: 8099,
+				ContainerPort: k8sConfig.Port,
 				Protocol:      v1.ProtocolTCP,
 			},
 		}
@@ -358,7 +397,7 @@ func makePorts(nodeType v1beta1.PinotNodeType) []v1.ContainerPort {
 		return []v1.ContainerPort{
 			{
 				Name:          string(v1beta1.Controller),
-				ContainerPort: 9000,
+				ContainerPort: k8sConfig.Port,
 				Protocol:      v1.ProtocolTCP,
 			},
 		}
@@ -371,15 +410,15 @@ func makePorts(nodeType v1beta1.PinotNodeType) []v1.ContainerPort {
 			},
 			{
 				Name:          "admin",
-				ContainerPort: 8097,
+				ContainerPort: k8sConfig.Port,
 				Protocol:      v1.ProtocolTCP,
 			},
 		}
 	case v1beta1.Minion:
 		return []v1.ContainerPort{
 			{
-				Name:          "minion",
-				ContainerPort: 9514,
+				Name:          string(v1beta1.Minion),
+				ContainerPort: k8sConfig.Port,
 				Protocol:      v1.ProtocolTCP,
 			},
 		}

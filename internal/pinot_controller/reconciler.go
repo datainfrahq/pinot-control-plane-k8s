@@ -18,7 +18,6 @@ package pinotcontroller
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/datainfrahq/operator-runtime/builder"
 	"github.com/datainfrahq/operator-runtime/utils"
@@ -44,14 +43,7 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 	pinotConfigMapHash := []utils.ConfigMapHash{}
 	pinotDeploymentOrStatefulset := []builder.BuilderDeploymentStatefulSet{}
 	pinotStorage := []builder.BuilderStorageConfig{}
-	// pinotService := []builder.BuilderService{}
-
-	// // append external config and hash to configmap builder
-	// if pt.Spec.External != (v1beta1.ExternalSpec{}) {
-	// 	cm := *ib.makeExternalConfigMap()
-	// 	pinotConfigMap = append(pinotConfigMap, cm)
-	// 	pinotConfigMapHash = append(pinotConfigMapHash, utils.ConfigMapHash{Object: cm.DesiredState})
-	// }
+	pinotService := []builder.BuilderService{}
 
 	// For all the nodeSpec ie nodeType to nodeSpec
 	// Get all the config group defined and append to configMap builder
@@ -59,7 +51,6 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 	// Get all the k8s config group defined and append to deploymentstatefulset builder
 	// For all the storage config defined in k8s config group append
 
-	fmt.Println(nodeSpecs)
 	for _, nodeSpec := range nodeSpecs {
 
 		ib = newInternalBuilder(pt, r.Client, &nodeSpec.NodeSpec, getOwnerRef)
@@ -79,7 +70,7 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 							&k8sConfig.StorageConfig,
 							pinotConfigMapHash,
 						))
-						//pinotService = append(pinotService, *ib.makeService(&k8sConfig, &nodeSpec.NodeSpec))
+						pinotService = append(pinotService, *ib.makeService(&k8sConfig, &nodeSpec.NodeSpec))
 						for _, sc := range k8sConfig.StorageConfig {
 							pinotStorage = append(pinotStorage, *ib.makePvc(&sc, &k8sConfig, &nodeSpec.NodeSpec))
 						}
@@ -96,7 +87,7 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 		builder.ToNewBuilderStorageConfig(pinotStorage),
 		builder.ToNewBuilderRecorder(builder.BuilderRecorder{Recorder: r.Recorder, ControllerName: "pinotOperator"}),
 		builder.ToNewBuilderContext(builder.BuilderContext{Context: ctx}),
-		// builder.ToNewBuilderService(pinotService),
+		builder.ToNewBuilderService(pinotService),
 		builder.ToNewBuilderStore(*builder.NewStore(ib.client, ib.commonLabels, pt.Namespace, pt)),
 	)
 
@@ -109,7 +100,7 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 		return err
 	}
 
-	// // reconcile svc
+	// reconcile svc
 	// _, err = builder.ReconcileService()
 	// if err != nil {
 	// 	return err
@@ -119,10 +110,6 @@ func (r *PinotReconciler) do(ctx context.Context, pt *v1beta1.Pinot) error {
 	_, err = builder.ReconcileDeployOrSts()
 	if err != nil {
 		return err
-	}
-
-	for _, sts := range pinotDeploymentOrStatefulset {
-		fmt.Println(sts.ObjectMeta.Name)
 	}
 
 	// reconcile storage

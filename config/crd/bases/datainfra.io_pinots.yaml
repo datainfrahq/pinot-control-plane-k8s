@@ -199,6 +199,9 @@ spec:
                             type: string
                           type: object
                       type: object
+                    port:
+                      format: int32
+                      type: integer
                     resources:
                       description: ResourceRequirements describes the compute resource
                         requirements.
@@ -2573,6 +2576,7 @@ spec:
                   required:
                   - image
                   - name
+                  - port
                   type: object
                 type: array
               nodes:
