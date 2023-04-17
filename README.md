@@ -1,5 +1,9 @@
 <h2 align="center">
-Kubernetes Operator For Apache Pinot
+  <picture>
+    <img alt="DataInfra Logo" src="https://raw.githubusercontent.com/datainfrahq/.github/main/images/logo.svg">
+  </picture>
+  <br>
+  Kubernetes Operator For Apache Pinot
 </h2>
 
 
