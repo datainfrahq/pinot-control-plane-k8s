@@ -29,4 +29,4 @@ helm install zkcr pravega/zookeeper --version=0.2.15 --set replicas=1 --persiste
 kubectl apply -f examples/pinot-simple.yaml -n pinot
 ```
 ### Note
-Apache®, Apache Pinot, Pinot® are either registered trademarks or trademarks of the Apache Software Foundation in the United States and/or other countries. This project, pinot-operator, is not an Apache Software Foundation project.
+Apache®, [Apache Pinot](https://pinot.apache.org), Pinot® are either registered trademarks or trademarks of the Apache Software Foundation in the United States and/or other countries. This project, pinot-operator, is not an Apache Software Foundation project.
