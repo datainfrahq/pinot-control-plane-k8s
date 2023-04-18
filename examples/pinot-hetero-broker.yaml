@@ -8,7 +8,7 @@ spec:
 
     zookeeper:
      spec:
-       zkAddress: zkcr-zookeeper-headless.pinot:2181
+       zkAddress: zk-pinot-zookeeper-headless.pinot:2181
 
   nodes:
 
@@ -77,7 +77,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: "civo-volume"
+        storageClassName: ${STORAGE_CLASS_NAME}
         resources:
           requests:
             storage: 1Gi
@@ -166,7 +166,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: "civo-volume"
+        storageClassName: ${STORAGE_CLASS_NAME}
         resources:
           requests:
             storage: 1Gi

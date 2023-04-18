@@ -22,15 +22,20 @@ Pinot Kubernetes Operator for deploying and managing heterogenous apache pinot k
 ### Getting Started
 
 ```
-export STORAGE_CLASS_NAME=gp3
+export STORAGE_CLASS_NAME=civo-volume
 make helm-install-pinot-operator
 make helm-install-zk-operator
-kubectl apply -f examples/pinot-simple.yaml -n pinot
+envsubst < examples/pinot-simple.yaml  | kubectl apply -f - -n pinot
 ```
 
 - Once all pods are up and running, get Pinot UI on ```localhost:9000```
 ```
 kubectl port-forward pinot-controller-controller-0 -n pinot 9000
+```
+
+- Clean Environment
+```
+make clean
 ```
 
 ### Note
