@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-simple
+  name: pinot-s3
 spec:
   
   plugins:
