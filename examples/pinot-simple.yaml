@@ -53,7 +53,13 @@ spec:
     port:
     - name: controller 
       containerPort: 9000
-      protocol: TCP  
+      protocol: TCP
+    service:
+      type: LoadBalancer
+      ports:
+      - protocol: TCP
+        port: 9000
+        targetPort: 9000
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -75,6 +81,13 @@ spec:
     - name: broker 
       containerPort: 8099
       protocol: TCP
+    service:
+      type: ClusterIP
+      ports:
+      - name: broker
+        port: 8099
+        protocol: TCP
+        targetPort: 8099
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -97,6 +110,17 @@ spec:
       containerPort: 8097
       protocol: TCP
     image: apachepinot/pinot:latest
+    service:
+      type: ClusterIP
+      ports:
+      - name: netty
+        port: 8098
+        protocol: TCP
+        targetPort: 8098
+      - protocol: TCP
+        port: 80
+        targetPort: 8097
+        name: admin
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info

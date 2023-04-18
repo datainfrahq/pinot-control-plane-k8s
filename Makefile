@@ -162,26 +162,30 @@ $(ENVTEST): $(LOCALBIN)
 
 ZK_OPERATOR_VERSION = 0.2.15
 ZK_VERSION = 0.2.15
+PINOT_OPERATOR_NAMESPACE=pinot-operator
+MINIO_OPERATOR_NAMESPACE=minio-operator
+ZOOKEEPER_OPERATOR_NAMESPACE=zookeeper-operator
+PINOT_CLUSTER_NAMESPACE=pinot
 
 .PHONY: helm-install-pinot-operator
 helm-install-pinot-operator: ## helm upgrade/install
 	helm upgrade --install \
-	--namespace pinot-operator \
+	--namespace ${PINOT_OPERATOR_NAMESPACE} \
 	--create-namespace \
-	pinot-operator helm/pinot-operator
+	${PINOT_OPERATOR_NAMESPACE} helm/pinot-operator
 
 .PHONY: helm-install-zk-operator
 helm-install-zk-operator: ## helm upgrade/install
 	helm repo add pravega https://charts.pravega.io
 	helm repo update pravega
 	helm upgrade --install \
-	--namespace zookeeper-operator \
+	--namespace ${ZOOKEEPER_OPERATOR_NAMESPACE} \
 	--create-namespace \
-	zk-operator pravega/zookeeper-operator \
+	${ZOOKEEPER_OPERATOR_NAMESPACE} pravega/zookeeper-operator \
 	--version=${ZK_OPERATOR_VERSION}
 	helm upgrade --install zk-pinot \
 	pravega/zookeeper \
-	--namespace pinot \
+	--namespace ${PINOT_CLUSTER_NAMESPACE} \
 	--create-namespace \
 	--version=${ZK_VERSION} \
 	--set replicas=1 \
@@ -189,8 +193,24 @@ helm-install-zk-operator: ## helm upgrade/install
 
 .PHONY: clean
 clean: ## clean up getting started
-	kubectl delete -f examples/pinot-simple.yaml -n pinot
-	helm delete zk-pinot -n pinot
-	helm delete pinot-operator -n pinot-operator
-	helm delete zk-operator -n zookeeper-operator
-	kubectl delete ns pinot-operator zookeeper-operator pinot
+	kubectl delete -f examples/pinot-simple.yaml -n ${PINOT_CLUSTER_NAMESPACE}
+	helm delete zk-pinot -n ${PINOT_CLUSTER_NAMESPACE}
+	helm delete pinot-operator -n ${PINOT_OPERATOR_NAMESPACE}
+	helm delete zk-operator -n ${ZOOKEEPER_OPERATOR_NAMESPACE}
+	kubectl delete ns ${PINOT_OPERATOR_NAMESPACE} ${ZOOKEEPER_OPERATOR_NAMESPACE} ${PINOT_CLUSTER_NAMESPACE}
+
+## Helm deploy minio operator and minio
+.PHONY: helm-minio-install
+helm-minio-install:
+	helm repo add minio https://operator.min.io/
+	helm repo update minio
+	helm upgrade --install \
+	--namespace ${MINIO_OPERATOR_NAMESPACE} \
+	--create-namespace \
+	 ${MINIO_OPERATOR_NAMESPACE} minio/operator \
+	-f e2e/configs/minio-operator-override.yaml
+	helm upgrade --install \
+	--namespace ${PINOT_CLUSTER_NAMESPACE} \
+	--create-namespace \
+  	${PINOT_CLUSTER_NAMESPACE}-minio minio/tenant \
+	-f e2e/configs/minio-tenant-override.yaml

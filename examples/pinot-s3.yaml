@@ -1,14 +1,48 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-hetero
+  name: pinot-simple
 spec:
+  
+  plugins:
+   - pinot-s3
 
   external:
 
     zookeeper:
      spec:
        zkAddress: zk-pinot-zookeeper-headless.pinot:2181
+
+    deepStorage:
+     spec:
+      - nodeType: controller
+        data: |-
+          controller.data.dir=s3://pinot/pinot-data/pinot-s3-example/controller-data
+          pinot.controller.storage.factory.class.s3=org.apache.pinot.plugin.filesystem.S3PinotFS
+          pinot.controller.storage.factory.s3.region=us-east-1
+          pinot.controller.storage.factory.s3.endpoint=http://myminio-hl.pinot.svc.cluster.local:9000/
+          pinot.controller.storage.factory.s3.accessKey=minio
+          pinot.controller.storage.factory.s3.secretKey=minio123
+          pinot.controller.segment.fetcher.protocols=file,http,s3
+          pinot.controller.segment.fetcher.s3.class=org.apache.pinot.common.utils.fetcher.PinotFSSegmentFetcher
+      - nodeType: server
+        data: |-
+          pinot.server.instance.enable.split.commit=true
+          pinot.server.storage.factory.class.s3=org.apache.pinot.plugin.filesystem.S3PinotFS
+          pinot.server.storage.factory.s3.region=us-west-2
+          pinot.server.storage.factory.s3.httpclient.maxConnections=50
+          pinot.server.storage.factory.s3.httpclient.socketTimeout=30s
+          pinot.server.storage.factory.s3.httpclient.connectionTimeout=2s
+          pinot.server.storage.factory.s3.httpclient.connectionTimeToLive=0s
+          pinot.server.storage.factory.s3.httpclient.connectionAcquisitionTimeout=10s
+          pinot.server.segment.fetcher.protocols=file,http,s3
+          pinot.server.segment.fetcher.s3.class=org.apache.pinot.common.utils.fetcher.PinotFSSegmentFetcher
+      - nodeType: minion
+        data: |-
+          pinot.minion.storage.factory.class.s3=org.apache.pinot.plugin.filesystem.S3PinotFS
+          pinot.minion.storage.factory.s3.region=us-west-2
+          pinot.minion.segment.fetcher.protocols=file,http,s3
+          pinot.minion.segment.fetcher.s3.class=org.apache.pinot.common.utils.fetcher.PinotFSSegmentFetcher
 
   nodes:
 
@@ -20,25 +54,18 @@ spec:
       pinotNodeConfig: controller
     
     - name: pinot-broker
-      kind: Deployment
+      kind: Statefulset
       replicas: 1
       nodeType: broker
       k8sConfig: broker
       pinotNodeConfig: broker
 
-    - name: pinot-server-az1
+    - name: pinot-server
       kind: Statefulset
       replicas: 1
       nodeType: server
-      k8sConfig: server-az1
-      pinotNodeConfig: server-az1
-
-    - name: pinot-server-az2
-      kind: Statefulset
-      replicas: 1
-      nodeType: server
-      k8sConfig: server-az2
-      pinotNodeConfig: server-az2
+      k8sConfig: server
+      pinotNodeConfig: server
     
     - name: pinot-minion
       kind: Statefulset
@@ -62,14 +89,14 @@ spec:
       containerPort: 9000
       protocol: TCP
     service:
-      type: LoadBalancer
+      type: ClusterIP
       ports:
       - protocol: TCP
         port: 9000
-        targetPort: 9000  
+        targetPort: 9000
     env:
     - name: LOG4J_CONSOLE_LEVEL
-      value: info
+      value: debug
     image: apachepinot/pinot:latest
     storageConfig:
     - name: pinotcontroller
@@ -85,7 +112,7 @@ spec:
   - name: broker
     serviceAccountName: "default"
     port:
-    - name: broker
+    - name: broker 
       containerPort: 8099
       protocol: TCP
     service:
@@ -95,50 +122,13 @@ spec:
         port: 8099
         protocol: TCP
         targetPort: 8099
-    service:
-      type: ClusterIP
-      ports:
-      - protocol: TCP
-        port: 8099
-        targetPort: 8099
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
     image: apachepinot/pinot:latest
-  
-  - name: server-az1
-    serviceAccountName: "default"
-    image: apachepinot/pinot:latest
-    port:
-    - name: netty
-      containerPort: 8098
-      protocol: TCP
-    - name: admin
-      containerPort: 8097
-      protocol: TCP
-    service:
-      type: ClusterIP
-      ports:
-      - name: netty
-        port: 8098
-        protocol: TCP
-        targetPort: 8098
-      - protocol: TCP
-        port: 80
-        targetPort: 8097
-        name: admin
-    service:
-      type: ClusterIP
-      ports:
-      - protocol: TCP
-        port: 80
-        targetPort: 8097
-    env:
-    - name: LOG4J_CONSOLE_LEVEL
-      value: info
     storageConfig:
-    - name: server
-      mountPath: "/var/pinot/server/data"
+    - name: broker
+      mountPath: "/var/pinot/broker/data"
       spec:
         accessModes:
         - ReadWriteOnce
@@ -147,15 +137,11 @@ spec:
           requests:
             storage: 1Gi
   
-  - name: server-az2
+  - name: server
     serviceAccountName: "default"
-    image: apachepinot/pinot:latest
     port:
-    - name: admin
+    - name: server 
       containerPort: 8097
-      protocol: TCP
-    - name: netty
-      containerPort: 8098
       protocol: TCP
     service:
       type: ClusterIP
@@ -168,6 +154,7 @@ spec:
         port: 80
         targetPort: 8097
         name: admin
+    image: apachepinot/pinot:latest
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -186,7 +173,7 @@ spec:
     serviceAccountName: "default"
     image: apachepinot/pinot:latest
     port:
-    - name: minion
+    - name: minion 
       containerPort: 9514
       protocol: TCP
     env:
@@ -211,7 +198,7 @@ spec:
                 -Dplugins.dir=/opt/pinot/plugins"
     data: |-
         controller.port=9000
-        controller.data.dir=/var/pinot/controller/data 
+        controller.local.temp.dir=/var/pinot/controller/data
         pinot.set.instance.id.to.hostname=true
         controller.task.scheduler.enabled=true
 
@@ -224,18 +211,7 @@ spec:
       pinot.broker.routing.table.builder.class=random
       pinot.set.instance.id.to.hostname=true
 
-  - name: server-az1
-    java_opts: "-Xms512M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/opt/pinot/gc-pinot-server.log
-                -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml -Dplugins.dir=/opt/pinot/plugins"
-    data: |-
-      pinot.server.netty.port=8098
-      pinot.server.adminapi.port=8097
-      pinot.server.instance.dataDir=/var/pinot/server/data/index
-      pinot.server.instance.segmentTarDir=/var/pinot/server/data/segment
-      pinot.set.instance.id.to.hostname=true
-      pinot.server.instance.realtime.alloc.offheap=false
-  
-  - name: server-az2
+  - name: server
     java_opts: "-Xms512M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/opt/pinot/gc-pinot-server.log
                 -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml -Dplugins.dir=/opt/pinot/plugins"
     data: |-

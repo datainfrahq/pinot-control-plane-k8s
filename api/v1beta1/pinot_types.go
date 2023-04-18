@@ -23,57 +23,109 @@ import (
 
 // PinotSpec defines the desired state of Pinot
 type PinotSpec struct {
-	DeploymentOrder []PinotNodeType   `json:"deploymentOrder"`
-	External        ExternalSpec      `json:"external,omitempty"`
-	K8sConfig       []K8sConfig       `json:"k8sConfig"`
+	// +optional
+	Plugins []string `json:"plugins"`
+	// +required
+	DeploymentOrder []PinotNodeType `json:"deploymentOrder"`
+	// +required
+	External ExternalSpec `json:"external,omitempty"`
+	// +required
+	K8sConfig []K8sConfig `json:"k8sConfig"`
+	// +required
 	PinotNodeConfig []PinotNodeConfig `json:"pinotNodeConfig"`
-	Nodes           []NodeSpec        `json:"nodes"`
+	// +required
+	Nodes []NodeSpec `json:"nodes"`
 }
 
 type ExternalSpec struct {
+	// +required
 	Zookeeper ZookeeperSpec `json:"zookeeper"`
+	// +optional
+	DeepStorage DeepStorageSpec `json:"deepStorage"`
 }
 
 type ZookeeperSpec struct {
+	// +required
 	Spec ZookeeperConfig `json:"spec"`
 }
 
 type ZookeeperConfig struct {
+	// +required
 	ZkAddress string `json:"zkAddress"`
 }
 
+type DeepStorageSpec struct {
+	// +optional
+	Spec []DeepStorageConfig `json:"spec"`
+}
+
+type DeepStorageConfig struct {
+	// +optional
+	NodeType PinotNodeType `json:"nodeType"`
+	// +optional
+	Data string `json:"data"`
+}
+
 type K8sConfig struct {
-	Name               string                  `json:"name"`
-	Volumes            []v1.Volume             `json:"volumes,omitempty"`
-	Port               []v1.ContainerPort      `json:"port"`
-	VolumeMount        []v1.VolumeMount        `json:"volumeMount,omitempty"`
-	Image              string                  `json:"image"`
-	ImagePullPolicy    v1.PullPolicy           `json:"imagePullPolicy,omitempty"`
-	ServiceAccountName string                  `json:"serviceAccountName,omitempty"`
-	Env                []v1.EnvVar             `json:"env,omitempty"`
-	Tolerations        []v1.Toleration         `json:"tolerations,omitempty"`
-	PodMetadata        Metadata                `json:"podMetadata,omitempty"`
-	StorageConfig      []StorageConfig         `json:"storageConfig,omitempty"`
-	NodeSelector       map[string]string       `json:"nodeSelector,omitempty"`
-	Service            *v1.ServiceSpec         `json:"service,omitempty"`
-	Resources          v1.ResourceRequirements `json:"resources,omitempty"`
+	// +required
+	Name string `json:"name"`
+	// +optional
+	Volumes []v1.Volume `json:"volumes,omitempty"`
+	// +required
+	Port []v1.ContainerPort `json:"port"`
+	// +optional
+	VolumeMount []v1.VolumeMount `json:"volumeMount,omitempty"`
+	// +required
+	Image string `json:"image"`
+	// +optional
+	ImagePullPolicy v1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// +optional
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+	// +optional
+	Env []v1.EnvVar `json:"env,omitempty"`
+	// +optional
+	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
+	// +optional
+	PodMetadata Metadata `json:"podMetadata,omitempty"`
+	// +optional
+	StorageConfig []StorageConfig `json:"storageConfig,omitempty"`
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// +optional
+	Service *v1.ServiceSpec `json:"service,omitempty"`
+	// +optional
+	LivenessProbe *v1.Probe `json:"livenessProbe,omitempty"`
+	// +optional
+	ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty"`
+	// +optional
+	StartUpProbe *v1.Probe `json:"startUpProbe,omitempty"`
+	// +optional
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 type Metadata struct {
+	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 type StorageConfig struct {
-	Name      string                       `json:"name"`
-	MountPath string                       `json:"mountPath"`
-	PvcSpec   v1.PersistentVolumeClaimSpec `json:"spec"`
+	// +required
+	Name string `json:"name"`
+	// +required
+	MountPath string `json:"mountPath"`
+	// +required
+	PvcSpec v1.PersistentVolumeClaimSpec `json:"spec"`
 }
 
 type PinotNodeConfig struct {
-	Name     string `json:"name"`
+	// +required
+	Name string `json:"name"`
+	// +required
 	JavaOpts string `json:"java_opts"`
-	Data     string `json:"data"`
+	// +required
+	Data string `json:"data"`
 }
 
 type PinotNodeType string
@@ -86,12 +138,18 @@ const (
 )
 
 type NodeSpec struct {
-	Name            string        `json:"name"`
-	Kind            string        `json:"kind"`
-	NodeType        PinotNodeType `json:"nodeType"`
-	Replicas        int           `json:"replicas"`
-	K8sConfig       string        `json:"k8sConfig"`
-	PinotNodeConfig string        `json:"pinotNodeConfig"`
+	// +required
+	Name string `json:"name"`
+	// +required
+	Kind string `json:"kind"`
+	// +required
+	NodeType PinotNodeType `json:"nodeType"`
+	// +required
+	Replicas int `json:"replicas"`
+	// +required
+	K8sConfig string `json:"k8sConfig"`
+	// +required
+	PinotNodeConfig string `json:"pinotNodeConfig"`
 }
 
 // PinotStatus defines the observed state of Pinot
