@@ -8,7 +8,7 @@ spec:
 
     zookeeper:
      spec:
-       zkAddress: zkcr-zookeeper-headless.pinot:2181
+       zkAddress: zk-pinot-zookeeper-headless.pinot:2181
 
   nodes:
 

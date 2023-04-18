@@ -155,3 +155,42 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+###################################################################################################################################
+## Custom Commands for deployments
+## Helm install to deploy the pinot operator
+
+ZK_OPERATOR_VERSION = 0.2.15
+ZK_VERSION = 0.2.15
+
+.PHONY: helm-install-pinot-operator
+helm-install-pinot-operator: ## helm upgrade/install
+	helm upgrade --install \
+	--namespace pinot-operator \
+	--create-namespace \
+	pinot-operator helm/pinot-operator
+
+.PHONY: helm-install-zk-operator
+helm-install-zk-operator: ## helm upgrade/install
+	helm repo add pravega https://charts.pravega.io
+	helm repo update pravega
+	helm upgrade --install \
+	--namespace zookeeper-operator \
+	--create-namespace \
+	zk-operator pravega/zookeeper-operator \
+	--version=${ZK_OPERATOR_VERSION}
+	helm upgrade --install zk-pinot \
+	pravega/zookeeper \
+	--namespace pinot \
+	--create-namespace \
+	--version=${ZK_VERSION} \
+	--set replicas=1 \
+	--set persistence.storageClassName=${STORAGE_CLASS_NAME}
+
+.PHONY: clean
+clean: ## clean up getting started
+	kubectl delete -f examples/pinot-simple.yaml -n pinot
+	helm delete zk-pinot -n pinot
+	helm delete pinot-operator -n pinot-operator
+	helm delete zk-operator -n zookeeper-operator
+	kubectl delete ns pinot-operator zookeeper-operator pinot
