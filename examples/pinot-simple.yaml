@@ -82,6 +82,7 @@ spec:
       containerPort: 8099
       protocol: TCP
     service:
+      clusterIP: None
       type: ClusterIP
       ports:
       - name: broker
@@ -112,6 +113,7 @@ spec:
     image: apachepinot/pinot:latest
     service:
       type: ClusterIP
+      clusterIP: None
       ports:
       - name: netty
         port: 8098
