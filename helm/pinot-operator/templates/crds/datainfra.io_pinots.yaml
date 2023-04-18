@@ -41,6 +41,14 @@ spec:
                 type: array
               external:
                 properties:
+                  deepStorage:
+                    properties:
+                      spec:
+                        properties:
+                          data:
+                            type: string
+                        type: object
+                    type: object
                   zookeeper:
                     properties:
                       spec:

@@ -17,6 +17,7 @@ package pinotcontroller
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/datainfrahq/operator-runtime/builder"
 	"github.com/datainfrahq/operator-runtime/utils"
@@ -93,22 +94,93 @@ func (ib *internalBuilder) makeConfigMap(
 	var data map[string]string
 
 	if pinotNodeSpec.NodeType == v1beta1.Controller {
+
+		var configuration string = fmt.Sprintf(
+			"%s\n%s\n%s",
+			pinotNodeConfig.Data,
+			"controller.helix.cluster.name="+ib.pinot.GetName(),
+			"controller.zk.str="+ib.pinot.Spec.External.Zookeeper.Spec.ZkAddress,
+		)
+
 		data = map[string]string{
-			ControllerConfName: fmt.Sprintf("%s\n%s\n%s", pinotNodeConfig.Data, "controller.zk.str="+ib.pinot.Spec.External.Zookeeper.Spec.ZkAddress, "controller.helix.cluster.name="+ib.pinot.Name),
+			ControllerConfName: configuration,
+		}
+
+		if ib.pinot.Spec.External.DeepStorage.Spec != nil {
+			for _, deepStoreConfig := range ib.pinot.Spec.External.DeepStorage.Spec {
+				if deepStoreConfig.NodeType == pinotNodeSpec.NodeType {
+					data = map[string]string{
+						ControllerConfName: fmt.Sprintf(
+							"%s\n%s",
+							configuration,
+							deepStoreConfig.Data,
+						),
+					}
+				}
+			}
+
 		}
 	} else if pinotNodeSpec.NodeType == v1beta1.Broker {
+
+		var configuration string = fmt.Sprintf("%s", pinotNodeConfig.Data)
 		data = map[string]string{
-			BrokerConfName: fmt.Sprintf("%s", pinotNodeConfig.Data),
+			BrokerConfName: configuration,
+		}
+		if ib.pinot.Spec.External.DeepStorage.Spec != nil {
+			for _, deepStoreConfig := range ib.pinot.Spec.External.DeepStorage.Spec {
+				if deepStoreConfig.NodeType == pinotNodeSpec.NodeType {
+					data = map[string]string{
+						BrokerConfName: fmt.Sprintf(
+							"%s\n%s",
+							configuration,
+							deepStoreConfig.Data,
+						),
+					}
+				}
+			}
 		}
 
 	} else if pinotNodeSpec.NodeType == v1beta1.Minion {
+		var configuration string = fmt.Sprintf("%s", pinotNodeConfig.Data)
 		data = map[string]string{
-			MinionConfName: fmt.Sprintf("%s", pinotNodeConfig.Data),
+			MinionConfName: configuration,
 		}
+		if ib.pinot.Spec.External.DeepStorage.Spec != nil {
+			for _, deepStoreConfig := range ib.pinot.Spec.External.DeepStorage.Spec {
+				if deepStoreConfig.NodeType == pinotNodeSpec.NodeType {
+					data = map[string]string{
+						MinionConfName: fmt.Sprintf(
+							"%s\n%s",
+							configuration,
+							deepStoreConfig.Data,
+						),
+					}
+				}
+			}
+
+		}
+
 	} else if pinotNodeSpec.NodeType == v1beta1.Server {
+
+		var configuration string = fmt.Sprintf("%s", pinotNodeConfig.Data)
 		data = map[string]string{
-			ServerConfName: fmt.Sprintf("%s", pinotNodeConfig.Data),
+			ServerConfName: configuration,
 		}
+		if ib.pinot.Spec.External.DeepStorage.Spec != nil {
+			for _, deepStoreConfig := range ib.pinot.Spec.External.DeepStorage.Spec {
+				if deepStoreConfig.NodeType == pinotNodeSpec.NodeType {
+					data = map[string]string{
+						ServerConfName: fmt.Sprintf(
+							"%s\n%s",
+							configuration,
+							deepStoreConfig.Data,
+						),
+					}
+				}
+			}
+
+		}
+
 	}
 	return &builder.BuilderConfigMap{
 		CommonBuilder: builder.CommonBuilder{
@@ -145,6 +217,9 @@ func (ib *internalBuilder) makeStsOrDeploy(
 				Ports:           k8sConfig.Port,
 				Env:             getEnv(ib.pinot, pinotNodeConfig, k8sConfig, configHash),
 				VolumeMounts:    getVolumeMounts(pinot, k8sConfig, pinotNodeSpec, storageConfig),
+				LivenessProbe:   k8sConfig.LivenessProbe,
+				ReadinessProbe:  k8sConfig.ReadinessProbe,
+				StartupProbe:    k8sConfig.StartUpProbe,
 				Resources:       k8sConfig.Resources,
 			},
 		},
@@ -173,6 +248,7 @@ func (ib *internalBuilder) makeStsOrDeploy(
 		Labels:              ib.commonLabels,
 		Kind:                pinotNodeSpec.Kind,
 		PodSpec:             &podSpec,
+		ServiceName:         makeSvcName(pinotNodeSpec.Name, k8sConfig.Name),
 		VolumeClaimTemplate: pvcs,
 	}
 
@@ -329,8 +405,6 @@ func makeArgs(
 	case v1beta1.Controller:
 		return []string{
 			StartController,
-			"-clusterName",
-			pinot.Name,
 			"-configFileName",
 			ControllerConfigMapVolumeMountPath + "/" + ControllerConfName,
 		}
@@ -370,8 +444,16 @@ func getEnv(
 
 	jvmOpts := v1.EnvVar{Name: "JAVA_OPTS", Value: pinotNodeConfig.JavaOpts}
 
-	envs = append(envs, k8sConfigGroup.Env...)
+	if pinot.Spec.Plugins != nil {
+		var jvmOptsPlugins []string
+		for _, plugin := range pinot.Spec.Plugins {
+			jvmOptsPlugins = append(jvmOptsPlugins, fmt.Sprintf("-Dplugins.include=%s", plugin))
+		}
+		strJvmOptsPlugins := strings.Join(jvmOptsPlugins, "")
+		jvmOpts.Value = fmt.Sprintf("%s %s", jvmOpts.Value, strJvmOptsPlugins)
+	}
 
+	envs = append(envs, k8sConfigGroup.Env...)
 	envs = append(envs, jvmOpts)
 
 	hashes, _ := utils.MakeConfigMapHash(configHash)

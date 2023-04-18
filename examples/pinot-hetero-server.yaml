@@ -91,7 +91,7 @@ spec:
     service:
       type: ClusterIP
       ports:
-      - name: netty
+      - name: broker
         port: 8099
         protocol: TCP
         targetPort: 8099
