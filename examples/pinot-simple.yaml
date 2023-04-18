@@ -64,7 +64,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: "civo-volume"
+        storageClassName: ${STORAGE_CLASS_NAME}
         resources:
           requests:
             storage: 1Gi
@@ -85,7 +85,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: "civo-volume"
+        storageClassName: ${STORAGE_CLASS_NAME}
         resources:
           requests:
             storage: 1Gi
@@ -106,7 +106,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: "civo-volume"
+        storageClassName: ${STORAGE_CLASS_NAME}
         resources:
           requests:
             storage: 1Gi
@@ -127,7 +127,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: "civo-volume"
+        storageClassName: ${STORAGE_CLASS_NAME}
         resources:
           requests:
             storage: 1Gi 
