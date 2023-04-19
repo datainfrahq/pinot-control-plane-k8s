@@ -113,3 +113,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinotschemas
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinotschemas/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinotschemas/status
+  verbs:
+  - get
+  - patch
+  - update

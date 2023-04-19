@@ -1,5 +1,5 @@
 /*
-Copyright 2023.
+DataInfra Pinot Operator (C) 2023 - 2024 DataInfra.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import (
 
 	datainfraiov1beta1 "github.com/datainfrahq/pinot-operator/api/v1beta1"
 	pinotcontroller "github.com/datainfrahq/pinot-operator/internal/pinot_controller"
+	schemacontroller "github.com/datainfrahq/pinot-operator/internal/schema_controller"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -90,7 +91,11 @@ func main() {
 	}
 
 	if err = (pinotcontroller.NewPinotReconciler(mgr)).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ParseableTenant")
+		setupLog.Error(err, "unable to create controller", "controller", "PinotController")
+		os.Exit(1)
+	}
+	if err = (schemacontroller.NewPinotReconciler(mgr)).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PinotSchemaController")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
