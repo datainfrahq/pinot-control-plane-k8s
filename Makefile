@@ -191,17 +191,9 @@ helm-install-zk-operator: ## helm upgrade/install
 	--set replicas=1 \
 	--set persistence.storageClassName=${STORAGE_CLASS_NAME}
 
-.PHONY: clean
-clean: ## clean up getting started
-	kubectl delete -f examples/pinot-simple.yaml -n ${PINOT_CLUSTER_NAMESPACE}
-	helm delete zk-pinot -n ${PINOT_CLUSTER_NAMESPACE}
-	helm delete pinot-operator -n ${PINOT_OPERATOR_NAMESPACE}
-	helm delete zk-operator -n ${ZOOKEEPER_OPERATOR_NAMESPACE}
-	kubectl delete ns ${PINOT_OPERATOR_NAMESPACE} ${ZOOKEEPER_OPERATOR_NAMESPACE} ${PINOT_CLUSTER_NAMESPACE}
-
 ## Helm deploy minio operator and minio
-.PHONY: helm-minio-install
-helm-minio-install:
+.PHONY: helm-install-minio-operator
+helm-install-minio-operator:
 	helm repo add minio https://operator.min.io/
 	helm repo update minio
 	helm upgrade --install \
@@ -214,3 +206,25 @@ helm-minio-install:
 	--create-namespace \
   	${PINOT_CLUSTER_NAMESPACE}-minio minio/tenant \
 	-f e2e/configs/minio-tenant-override.yaml
+
+## Make Topics
+.PHONY: topics
+topics:
+	kubectl -n pinot exec kafka-0 \
+	-- kafka-topics.sh \
+	--bootstrap-server kafka-0:9092 \
+	--topic flights-realtime --create \
+	--partitions 1 \
+	--replication-factor 1
+	kubectl -n pinot exec kafka-0 \
+	-- kafka-topics.sh --bootstrap-server kafka-0:9092 \
+	--topic flights-realtime-avro \
+	--create --partitions 1 \
+	--replication-factor 1
+
+.PHONY: clean
+clean: ## clean up getting started
+	helm delete zk-pinot -n ${PINOT_CLUSTER_NAMESPACE}
+	helm delete pinot-operator -n ${PINOT_OPERATOR_NAMESPACE}
+	helm delete zookeeper-operator -n ${ZOOKEEPER_OPERATOR_NAMESPACE}
+	kubectl delete ns ${PINOT_OPERATOR_NAMESPACE} ${ZOOKEEPER_OPERATOR_NAMESPACE} ${PINOT_CLUSTER_NAMESPACE}
