@@ -30,9 +30,9 @@ data:
           "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
           "stream.kafka.hlc.zk.connect.string": "kafka-zookeeper:2181",
           "stream.kafka.zk.broker.url": "kafka-zookeeper:2181",
-          "stream.kafka.broker.list": "kafka:9092",
+          "stream.kafka.broker.list": "kafka-0.kafka-headless.pinot.svc.cluster.local:9092",
           "realtime.segment.flush.threshold.time": "3600000",
-          "realtime.segment.flush.threshold.size": "50000",
+          "realtime.segment.flush.threshold.size": "100",
           "stream.kafka.consumer.prop.auto.offset.reset": "smallest"
         }
       },
@@ -70,7 +70,7 @@ data:
           "stream.kafka.zk.broker.url": "kafka-zookeeper:2181",
           "stream.kafka.broker.list": "kafka:9092",
           "realtime.segment.flush.threshold.time": "3600000",
-          "realtime.segment.flush.threshold.size": "50000",
+          "realtime.segment.flush.threshold.size": "100",
           "stream.kafka.consumer.prop.auto.offset.reset": "smallest"
         }
       },
