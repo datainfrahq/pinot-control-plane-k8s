@@ -1,9 +1,10 @@
 <h2 align="center">
   <picture>
-    <img alt="DataInfra Logo" src="https://raw.githubusercontent.com/datainfrahq/.github/main/images/logo.svg">
+    <img alt="DataInfra Logo" src="https://raw.githubusercontent.com/datainfrahq/.github/main/images/logo.svg" width="500" height="100">
   </picture>
   <br>
   Control Plane For Apache Pinot On Kubernetes
+  </br>
 </h2>
 
 
