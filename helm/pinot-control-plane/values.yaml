@@ -7,7 +7,7 @@ env:
 replicaCount: 1
 
 image:
-  repository: datainfrahq/pinot-operator
+  repository: datainfrahq/pinot-control-plane
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""

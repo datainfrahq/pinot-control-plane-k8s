@@ -1,4 +1,4 @@
-module github.com/datainfrahq/pinot-operator
+module github.com/datainfrahq/pinot-control-plane-k8s
 
 go 1.19
 

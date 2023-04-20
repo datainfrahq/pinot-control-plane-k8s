@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/datainfrahq/pinot-operator/api/v1beta1"
-	datainfraiov1beta1 "github.com/datainfrahq/pinot-operator/api/v1beta1"
+	"github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
+	datainfraiov1beta1 "github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
 	"github.com/go-logr/logr"
 )
 

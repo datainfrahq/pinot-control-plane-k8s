@@ -17,12 +17,12 @@ limitations under the License.
 package pinotcontroller
 
 import (
-	"github.com/datainfrahq/pinot-operator/api/v1beta1"
+	"github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// create owner ref ie parseable tenant controller
+// create owner ref
 func makeOwnerRef(apiVersion, kind, name string, uid types.UID) *metav1.OwnerReference {
 	controller := true
 

@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= datainfrahq/pinot-operator:v0.0.2
+IMG ?= datainfrahq/pinot-control-plane:v0.0.3
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.26.0
 
@@ -162,17 +162,17 @@ $(ENVTEST): $(LOCALBIN)
 
 ZK_OPERATOR_VERSION = 0.2.15
 ZK_VERSION = 0.2.15
-PINOT_OPERATOR_NAMESPACE=pinot-operator
+PINOT_OPERATOR_NAMESPACE=pinot-control-plane
 MINIO_OPERATOR_NAMESPACE=minio-operator
 ZOOKEEPER_OPERATOR_NAMESPACE=zookeeper-operator
 PINOT_CLUSTER_NAMESPACE=pinot
 
-.PHONY: helm-install-pinot-operator
-helm-install-pinot-operator: ## helm upgrade/install
+.PHONY: helm-install-pinot-control-plane
+helm-install-pinot-control-plane: ## helm upgrade/install
 	helm upgrade --install \
 	--namespace ${PINOT_OPERATOR_NAMESPACE} \
 	--create-namespace \
-	${PINOT_OPERATOR_NAMESPACE} helm/pinot-operator
+	${PINOT_OPERATOR_NAMESPACE} helm/pinot-control-plane
 
 .PHONY: helm-install-zk-operator
 helm-install-zk-operator: ## helm upgrade/install
