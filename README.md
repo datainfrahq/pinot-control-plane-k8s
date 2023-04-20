@@ -27,7 +27,6 @@ make helm-install-pinot-operator
 make helm-install-zk-operator
 envsubst < examples/pinot-simple.yaml  | kubectl apply -f - -n pinot
 ```
-
 ### Getting Started With DeepStorage Minio
 
 - An e2e getting started from kafka > pinot > minio s3.

@@ -30,9 +30,10 @@ type PinotSchemaSpec struct {
 type PinotSchemaStatus struct {
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Pinot_Cluster",type="string",JSONPath=".spec.clusterName"
 // PinotSchema is the Schema for the pinotschemas API
 type PinotSchema struct {
 	metav1.TypeMeta   `json:",inline"`
