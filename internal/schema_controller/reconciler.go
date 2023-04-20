@@ -161,8 +161,7 @@ func makeOwnerRef(apiVersion, kind, name string, uid types.UID) *metav1.OwnerRef
 }
 
 func makeControllerUrl(name, namespace string) string {
-	//return "http://" + name + "." + namespace + ".svc.cluster.local:9000"
-	return "http://" + "74.220.18.238:9000"
+	return "http://" + name + "." + namespace + ".svc.cluster.local:9000"
 }
 
 func getSchemaName(schemaJson string) (string, error) {
