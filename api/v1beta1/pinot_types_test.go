@@ -32,8 +32,8 @@ spec:
       kind: Statefulset
       replicas: 1
       nodeType: controller
-      k8sConfigGroupName: pinotcontroller
-      parseableConfigGroupName: pinotcontroller
+      k8sConfig: pinotcontroller
+      pinotNodeConfig: pinotcontroller
 
   deploymentOrder:
   - controller
@@ -77,7 +77,7 @@ spec:
         controller.task.scheduler.enabled=true 
 `
 
-func TestParseableTenant(t *testing.T) {
+func TestPinotTenant(t *testing.T) {
 	var spec Pinot
 
 	t.Logf("%+v", spec.Spec.Nodes)

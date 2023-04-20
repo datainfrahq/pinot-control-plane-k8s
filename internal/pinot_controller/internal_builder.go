@@ -21,7 +21,7 @@ import (
 
 	"github.com/datainfrahq/operator-runtime/builder"
 	"github.com/datainfrahq/operator-runtime/utils"
-	"github.com/datainfrahq/pinot-operator/api/v1beta1"
+	"github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

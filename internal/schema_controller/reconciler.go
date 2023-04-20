@@ -22,9 +22,9 @@ import (
 	"net/http"
 
 	"github.com/datainfrahq/operator-runtime/builder"
-	"github.com/datainfrahq/pinot-operator/api/v1beta1"
-	internalHTTP "github.com/datainfrahq/pinot-operator/internal/http"
-	"github.com/datainfrahq/pinot-operator/internal/utils"
+	"github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
+	internalHTTP "github.com/datainfrahq/pinot-control-plane-k8s/internal/http"
+	"github.com/datainfrahq/pinot-control-plane-k8s/internal/utils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -186,7 +186,7 @@ func (r *PinotSchemaReconciler) makeSchemaConfigMap(
 	return configMap
 }
 
-// create owner ref ie parseable tenant controller
+// create owner ref ie pinot controller
 func makeOwnerRef(apiVersion, kind, name string, uid types.UID) *metav1.OwnerReference {
 	controller := true
 
@@ -200,8 +200,7 @@ func makeOwnerRef(apiVersion, kind, name string, uid types.UID) *metav1.OwnerRef
 }
 
 func makeControllerUrl(name, namespace string) string {
-	//return "http://" + name + "." + namespace + ".svc.cluster.local:9000"
-	return "http://74.220.18.238:9000"
+	return "http://" + name + "." + namespace + ".svc.cluster.local:9000"
 }
 
 func getSchemaName(schemaJson string) (string, error) {

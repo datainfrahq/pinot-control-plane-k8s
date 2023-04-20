@@ -140,6 +140,13 @@ spec:
   - name: minion
     serviceAccountName: "default"
     image: apachepinot/pinot:latest
+    service:
+      clusterIP: None
+      type: ClusterIP
+      ports:
+      - protocol: TCP
+        port: 9514
+        targetPort: 9514
     port:
     - name: minion 
       containerPort: 9514

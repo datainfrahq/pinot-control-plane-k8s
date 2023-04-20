@@ -11,9 +11,9 @@
 <div align="center">
 
 ![Build Status](https://github.com/datainfrahq/pinot-control-plane-k8s/actions/workflows/makefile.yml/badge.svg) [![Slack](https://img.shields.io/badge/slack-brightgreen.svg?logo=slack&label=Community&style=flat&color=%2373DC8C&)](https://launchpass.com/datainfra-workspace)
-![Docker pull](https://img.shields.io/docker/pulls/datainfrahq/pinot-operator.svg) 
+![Docker pull](https://img.shields.io/docker/pulls/datainfrahq/pinot-control-plane.svg) 
 [![Go Reference](https://pkg.go.dev/badge/github.com/datainfrahq/operator-runtime.svg)](https://pkg.go.dev/github.com/datainfrahq/pinot-control-plane-k8s)
-![GitHub issues](https://img.shields.io/github/issues/datainfrahq/pinot-operator) [![Go Report Card](https://goreportcard.com/badge/github.com/datainfrahq/pinot-control-plane-k8s)](https://goreportcard.com/report/github.com/datainfrahq/pinot-control-plane-k8s)
+![GitHub issues](https://img.shields.io/github/issues/datainfrahq/pinot-control-plane-k8s) [![Go Report Card](https://goreportcard.com/badge/github.com/datainfrahq/pinot-control-plane-k8s)](https://goreportcard.com/report/github.com/datainfrahq/pinot-control-plane-k8s)
 
 
 </div>
@@ -24,7 +24,7 @@ Control Plane for deploying and managing heterogenous apache pinot kubernetes cl
 
 ```
 export STORAGE_CLASS_NAME=civo-volume
-make helm-install-pinot-operator
+make helm-install-pinot-control-plane
 make helm-install-zk-operator
 envsubst < examples/pinot-simple.yaml  | kubectl apply -f - -n pinot
 ```
@@ -36,7 +36,7 @@ envsubst < examples/pinot-simple.yaml  | kubectl apply -f - -n pinot
 ```
 export STORAGE_CLASS_NAME=civo-volume
 # Install Pinot Operator
-make helm-install-pinot-operator
+make helm-install-pinot-control-plane
 # Install Zookeeper Operator and ZK Custom Resource
 make helm-install-zk-operator
 # Install Minio Operator and minion Custom Resource
@@ -82,4 +82,4 @@ make clean
 ```
 
 ### Note
-Apache®, [Apache Pinot](https://pinot.apache.org), Pinot® are either registered trademarks or trademarks of the Apache Software Foundation in the United States and/or other countries. This project, pinot-operator, is not an Apache Software Foundation project.
+Apache®, [Apache Pinot](https://pinot.apache.org), Pinot® are either registered trademarks or trademarks of the Apache Software Foundation in the United States and/or other countries. This project, pinot-control-plane-k8s, is not an Apache Software Foundation project.

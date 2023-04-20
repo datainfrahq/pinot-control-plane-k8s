@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	datainfraiov1beta1 "github.com/datainfrahq/pinot-operator/api/v1beta1"
-	pinotcontroller "github.com/datainfrahq/pinot-operator/internal/pinot_controller"
-	schemacontroller "github.com/datainfrahq/pinot-operator/internal/schema_controller"
+	datainfraiov1beta1 "github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
+	pinotcontroller "github.com/datainfrahq/pinot-control-plane-k8s/internal/pinot_controller"
+	schemacontroller "github.com/datainfrahq/pinot-control-plane-k8s/internal/schema_controller"
 	//+kubebuilder:scaffold:imports
 )
 
