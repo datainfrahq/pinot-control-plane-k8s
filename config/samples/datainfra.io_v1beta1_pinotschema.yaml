@@ -1,0 +1,12 @@
+apiVersion: datainfra.io/v1beta1
+kind: PinotSchema
+metadata:
+  labels:
+    app.kubernetes.io/name: pinotschema
+    app.kubernetes.io/instance: pinotschema-sample
+    app.kubernetes.io/part-of: pinot-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: pinot-operator
+  name: pinotschema-sample
+spec:
+  # TODO(user): Add fields here

@@ -1,5 +1,5 @@
 /*
-Copyright 2023.
+DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -91,8 +91,8 @@ type K8sConfig struct {
 	StorageConfig []StorageConfig `json:"storageConfig,omitempty"`
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// +optional
-	Service *v1.ServiceSpec `json:"service,omitempty"`
+	// +required
+	Service *v1.ServiceSpec `json:"service"`
 	// +optional
 	LivenessProbe *v1.Probe `json:"livenessProbe,omitempty"`
 	// +optional

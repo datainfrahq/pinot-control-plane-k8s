@@ -3074,6 +3074,7 @@ spec:
                   - image
                   - name
                   - port
+                  - service
                   type: object
                 type: array
               nodes:
