@@ -3,7 +3,7 @@
     <img alt="DataInfra Logo" src="https://raw.githubusercontent.com/datainfrahq/.github/main/images/logo.svg">
   </picture>
   <br>
-  Kubernetes Operator For Apache Pinot
+  Control Plane For Apache Pinot On Kubernetes
 </h2>
 
 
@@ -17,7 +17,7 @@
 
 </div>
 
-Pinot Kubernetes Operator for deploying and managing heterogenous apache pinot kubernetes clusters. This operator is based on [Dsoi-Spec](https://github.com/datainfrahq/dsoi-spec) and is built using [operator-runtime](https://github.com/datainfrahq/operator-runtime). This is a radical new approach that brings ease of use and decouples application and kubernetes in a way that it becomes easier for day 2 operations. The goal of this project is to build a control plane for managing apache pinot clusters. The underlying controllers are built on conditions ie orthogonal concepts and not state machines.
+Control Plane for deploying and managing heterogenous apache pinot kubernetes clusters and its operations including schema, table and tenants management. This control plane is based on [Dsoi-Spec](https://github.com/datainfrahq/dsoi-spec) and is built using [operator-runtime](https://github.com/datainfrahq/operator-runtime). This is a radical new approach that brings ease of use and decouples application and kubernetes in a way that it becomes easier for day 2 operations. The underlying controllers are built on conditions ie orthogonal concepts and not state machines.
 
 ### Getting Started 
 
