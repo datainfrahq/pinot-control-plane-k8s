@@ -9,10 +9,10 @@
 
 <div align="center">
 
-![Build Status](https://github.com/datainfrahq/pinot-operator/actions/workflows/makefile.yml/badge.svg) [![Slack](https://img.shields.io/badge/slack-brightgreen.svg?logo=slack&label=Community&style=flat&color=%2373DC8C&)](https://launchpass.com/datainfra-workspace)
+![Build Status](https://github.com/datainfrahq/pinot-control-plane-k8s/actions/workflows/makefile.yml/badge.svg) [![Slack](https://img.shields.io/badge/slack-brightgreen.svg?logo=slack&label=Community&style=flat&color=%2373DC8C&)](https://launchpass.com/datainfra-workspace)
 ![Docker pull](https://img.shields.io/docker/pulls/datainfrahq/pinot-operator.svg) 
-[![Go Reference](https://pkg.go.dev/badge/github.com/datainfrahq/operator-runtime.svg)](https://pkg.go.dev/github.com/datainfrahq/pinot-operator)
-![GitHub issues](https://img.shields.io/github/issues/datainfrahq/pinot-operator) [![Go Report Card](https://goreportcard.com/badge/github.com/datainfrahq/pinot-operator)](https://goreportcard.com/report/github.com/datainfrahq/pinot-operator)
+[![Go Reference](https://pkg.go.dev/badge/github.com/datainfrahq/operator-runtime.svg)](https://pkg.go.dev/github.com/datainfrahq/pinot-control-plane-k8s)
+![GitHub issues](https://img.shields.io/github/issues/datainfrahq/pinot-operator) [![Go Report Card](https://goreportcard.com/badge/github.com/datainfrahq/pinot-control-plane-k8s)](https://goreportcard.com/report/github.com/datainfrahq/pinot-control-plane-k8s)
 
 
 </div>
