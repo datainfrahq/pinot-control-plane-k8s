@@ -1,5 +1,5 @@
 /*
-DataInfra Pinot Operator (C) 2023 - 2024 DataInfra.
+DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@ import (
 
 // PinotSchemaSpec defines the desired state of PinotSchema
 type PinotSchemaSpec struct {
-	SchemaJson string `json:"schema.json,omitempty"`
+	ClusterName string `json:"clusterName"`
+	SchemaJson  string `json:"schema.json,omitempty"`
 }
 
 // PinotSchemaStatus defines the observed state of PinotSchema

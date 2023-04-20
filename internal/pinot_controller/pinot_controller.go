@@ -1,5 +1,5 @@
 /*
-DataInfra Pinot Operator (C) 2023 - 2024 DataInfra.
+DataInfra Pinot Control Plane(C) 2023 - 2024 DataInfra.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

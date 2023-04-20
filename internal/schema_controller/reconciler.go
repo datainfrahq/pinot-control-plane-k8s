@@ -1,5 +1,5 @@
 /*
-DataInfra Pinot Operator (C) 2023 - 2024 DataInfra.
+DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,15 +17,28 @@ package schemacontroller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/datainfrahq/operator-runtime/builder"
 	"github.com/datainfrahq/pinot-operator/api/v1beta1"
 	internalHTTP "github.com/datainfrahq/pinot-operator/internal/http"
+	"github.com/datainfrahq/pinot-operator/internal/utils"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+)
+
+const (
+	PinotSchemaControllerCreateSuccess = "PinotSchemaControllerCreateSuccess"
+	PinotSchemaControllerCreateFail    = "PinotSchemaControllerCreateFail"
+	PinotSchemaControllerUpdateSuccess = "PinotSchemaControllerUpdateSuccess"
+	PinotSchemaControllerUpdateFail    = "PinotSchemaControllerUpdateFail"
+	PinotSchemaControllerDeleteSuccess = "PinotSchemaControllerDeleteSuccess"
+	PinotSchemaControllerDeleteFail    = "PinotSchemaControllerDeleteFail"
 )
 
 func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSchema) error {
@@ -41,7 +54,7 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 
 	build := builder.NewBuilder(
 		builder.ToNewBuilderConfigMap([]builder.BuilderConfigMap{*cm}),
-		builder.ToNewBuilderRecorder(builder.BuilderRecorder{Recorder: r.Recorder, ControllerName: "pinotschemacontroller"}),
+		builder.ToNewBuilderRecorder(builder.BuilderRecorder{Recorder: r.Recorder, ControllerName: "PinotSchemaController"}),
 		builder.ToNewBuilderContext(builder.BuilderContext{Context: ctx}),
 		builder.ToNewBuilderStore(
 			*builder.NewStore(r.Client, map[string]string{"schema": schema.Name}, schema.Namespace, schema),
@@ -53,25 +66,57 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 		return err
 	}
 
+	listOpts := []client.ListOption{
+		client.InNamespace(schema.Namespace),
+		client.MatchingLabels(map[string]string{
+			"custom_resource": schema.Spec.ClusterName,
+			"nodeType":        "controller",
+		}),
+	}
+
+	svcList := &v1.ServiceList{}
+	if err := r.Client.List(ctx, svcList, listOpts...); err != nil {
+		return err
+	}
+	var svcName string
+
+	for range svcList.Items {
+		svcName = svcList.Items[0].Name
+	}
+
 	if resp == controllerutil.OperationResultCreated {
 		if schema.Spec.SchemaJson != "" {
-			http := internalHTTP.NewHTTPClient(http.MethodPost, "http://74.220.23.197:9000/schemas", http.Client{}, []byte(schema.Spec.SchemaJson))
+
+			http := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerUrl(svcName, schema.Namespace)+"/schemas", http.Client{}, []byte(schema.Spec.SchemaJson))
 			resp, err := http.Do()
 			if err != nil {
+				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp %s]", string(resp)), PinotSchemaControllerCreateFail)
 				return err
 			}
 
-			fmt.Println(string(resp))
+			if getRespCode(resp) != "200" && getRespCode(resp) != "" {
+				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp %s]", string(resp)), PinotSchemaControllerCreateFail)
+			} else {
+				build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp %s]", string(resp)), PinotSchemaControllerCreateSuccess)
+			}
 		}
 	} else if resp == controllerutil.OperationResultUpdated {
 		if schema.Spec.SchemaJson != "" {
-			http := internalHTTP.NewHTTPClient(http.MethodPost, "http://74.220.23.197:9000/schemas/", http.Client{}, []byte(schema.Spec.SchemaJson))
-			resp, err := http.Do()
+			schemaName, err := getSchemaName(schema.Spec.SchemaJson)
 			if err != nil {
 				return err
 			}
-
-			fmt.Println(string(resp))
+			http := internalHTTP.NewHTTPClient(http.MethodPut, makeControllerUrl(svcName, schema.Namespace)+"/schemas/"+schemaName, http.Client{}, []byte(schema.Spec.SchemaJson))
+			resp, err := http.Do()
+			if err != nil {
+				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp %s]", string(resp)), PinotSchemaControllerUpdateFail)
+				return err
+			}
+			if getRespCode(resp) != "200" && getRespCode(resp) != "" {
+				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp %s]", string(resp)), PinotSchemaControllerUpdateFail)
+			} else {
+				build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp %s]", string(resp)), PinotSchemaControllerUpdateSuccess)
+			}
 		}
 	}
 
@@ -87,7 +132,7 @@ func (r *PinotSchemaReconciler) makeSchemaConfigMap(
 	configMap := &builder.BuilderConfigMap{
 		CommonBuilder: builder.CommonBuilder{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      schema.GetName(),
+				Name:      schema.GetName() + "-" + "schema",
 				Namespace: schema.GetNamespace(),
 			},
 			Client:   r.Client,
@@ -113,4 +158,31 @@ func makeOwnerRef(apiVersion, kind, name string, uid types.UID) *metav1.OwnerRef
 		UID:        uid,
 		Controller: &controller,
 	}
+}
+
+func makeControllerUrl(name, namespace string) string {
+	//return "http://" + name + "." + namespace + ".svc.cluster.local:9000"
+	return "http://" + "74.220.18.238:9000"
+}
+
+func getSchemaName(schemaJson string) (string, error) {
+	var err error
+
+	schema := make(map[string]json.RawMessage)
+	if err = json.Unmarshal([]byte(schemaJson), &schema); err != nil {
+		return "", err
+	}
+
+	return utils.TrimQuote(string(schema["schemaName"])), nil
+}
+
+func getRespCode(resp []byte) string {
+	var err error
+
+	respMap := make(map[string]json.RawMessage)
+	if err = json.Unmarshal(resp, &respMap); err != nil {
+		return ""
+	}
+
+	return utils.TrimQuote(string(respMap["code"]))
 }

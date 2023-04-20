@@ -35,8 +35,12 @@ spec:
           spec:
             description: PinotSchemaSpec defines the desired state of PinotSchema
             properties:
+              clusterName:
+                type: string
               schema.json:
                 type: string
+            required:
+            - clusterName
             type: object
           status:
             description: PinotSchemaStatus defines the observed state of PinotSchema
