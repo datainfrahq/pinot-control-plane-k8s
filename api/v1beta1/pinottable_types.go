@@ -20,40 +20,52 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PinotSchemaSpec defines the desired state of PinotSchema
-type PinotSchemaSpec struct {
+type PinotTableType string
+
+const (
+	RealTimeTable    PinotTableType = "realtime"
+	OfflineTimeTable PinotTableType = "offline"
+)
+
+// PinotTableSpec defines the desired state of PinotTable
+type PinotTableSpec struct {
 	// +required
 	PinotCluster string `json:"pinotCluster"`
 	// +required
-	PinotSchemaJson string `json:"schema.json"`
+	PinotSchema string `json:"pinotSchema"`
+	// +required
+	PinotTableType PinotTableType `json:"pinotTableType"`
+	// +required
+	PinotTablesJson string `json:"tables.json"`
 }
 
-// PinotSchemaStatus defines the observed state of PinotSchema
-type PinotSchemaStatus struct {
+// PinotTableStatus defines the observed state of PinotTable
+type PinotTableStatus struct {
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Pinot_Cluster",type="string",JSONPath=".spec.pinotCluster"
-// PinotSchema is the Schema for the pinotschemas API
-type PinotSchema struct {
+// +kubebuilder:printcolumn:name="Pinot_Schema",type="string",JSONPath=".spec.pinotSchema"
+// PinotTable is the Schema for the pinottables API
+type PinotTable struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PinotSchemaSpec   `json:"spec,omitempty"`
-	Status PinotSchemaStatus `json:"status,omitempty"`
+	Spec   PinotTableSpec   `json:"spec,omitempty"`
+	Status PinotTableStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// PinotSchemaList contains a list of PinotSchema
-type PinotSchemaList struct {
+// PinotTableList contains a list of PinotTable
+type PinotTableList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PinotSchema `json:"items"`
+	Items           []PinotTable `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&PinotSchema{}, &PinotSchemaList{})
+	SchemeBuilder.Register(&PinotTable{}, &PinotTableList{})
 }

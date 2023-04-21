@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package schemacontroller
+package tablecontroller
 
 import (
 	"context"
@@ -33,8 +33,8 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// PinotSchemaReconciler reconciles a PinotSchema object
-type PinotSchemaReconciler struct {
+// PinotTableReconciler reconciles a PinotTable object
+type PinotTableReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
@@ -43,9 +43,9 @@ type PinotSchemaReconciler struct {
 	Recorder      record.EventRecorder
 }
 
-func NewPinotSchemaReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
+func NewPinotTableReconciler(mgr ctrl.Manager) *PinotTableReconciler {
 	initLogger := ctrl.Log.WithName("controllers").WithName("pinot")
-	return &PinotSchemaReconciler{
+	return &PinotTableReconciler{
 		Client:        mgr.GetClient(),
 		Log:           initLogger,
 		Scheme:        mgr.GetScheme(),
@@ -54,16 +54,15 @@ func NewPinotSchemaReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
 	}
 }
 
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas/finalizers,verbs=update
+//+kubebuilder:rbac:groups=datainfra.io,resources=pinottables,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=datainfra.io,resources=pinottables/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=datainfra.io,resources=pinottables/finalizers,verbs=update
 
-func (r *PinotSchemaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
+func (r *PinotTableReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logr := log.FromContext(ctx)
 
-	pinotSchemaCR := &v1beta1.PinotSchema{}
-	err := r.Get(context.TODO(), req.NamespacedName, pinotSchemaCR)
+	pinotTableCR := &v1beta1.PinotTable{}
+	err := r.Get(context.TODO(), req.NamespacedName, pinotTableCR)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -71,7 +70,7 @@ func (r *PinotSchemaReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	if err := r.do(ctx, pinotSchemaCR); err != nil {
+	if err := r.do(ctx, pinotTableCR); err != nil {
 		logr.Error(err, err.Error())
 		return ctrl.Result{}, err
 	} else {
@@ -80,9 +79,9 @@ func (r *PinotSchemaReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *PinotSchemaReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *PinotTableReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&datainfraiov1beta1.PinotSchema{}).
+		For(&datainfraiov1beta1.PinotTable{}).
 		Complete(r)
 }
 

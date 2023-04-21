@@ -50,7 +50,7 @@ func NewPinotReconciler(mgr ctrl.Manager) *PinotReconciler {
 		Log:           initLogger,
 		Scheme:        mgr.GetScheme(),
 		ReconcileWait: lookupReconcileTime(initLogger),
-		Recorder:      mgr.GetEventRecorderFor("pinot-operator"),
+		Recorder:      mgr.GetEventRecorderFor("pinot-control-plane"),
 	}
 }
 

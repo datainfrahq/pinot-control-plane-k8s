@@ -19,7 +19,7 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    - jsonPath: .spec.clusterName
+    - jsonPath: .spec.pinotCluster
       name: Pinot_Cluster
       type: string
     name: v1beta1
@@ -42,12 +42,13 @@ spec:
           spec:
             description: PinotSchemaSpec defines the desired state of PinotSchema
             properties:
-              clusterName:
+              pinotCluster:
                 type: string
               schema.json:
                 type: string
             required:
-            - clusterName
+            - pinotCluster
+            - schema.json
             type: object
           status:
             description: PinotSchemaStatus defines the observed state of PinotSchema

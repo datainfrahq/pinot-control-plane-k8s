@@ -5,14 +5,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: pinotschemas.datainfra.io
+  name: pinottables.datainfra.io
 spec:
   group: datainfra.io
   names:
-    kind: PinotSchema
-    listKind: PinotSchemaList
-    plural: pinotschemas
-    singular: pinotschema
+    kind: PinotTable
+    listKind: PinotTableList
+    plural: pinottables
+    singular: pinottable
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -22,10 +22,13 @@ spec:
     - jsonPath: .spec.pinotCluster
       name: Pinot_Cluster
       type: string
+    - jsonPath: .spec.pinotSchema
+      name: Pinot_Schema
+      type: string
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: PinotSchema is the Schema for the pinotschemas API
+        description: PinotTable is the Schema for the pinottables API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -40,18 +43,24 @@ spec:
           metadata:
             type: object
           spec:
-            description: PinotSchemaSpec defines the desired state of PinotSchema
+            description: PinotTableSpec defines the desired state of PinotTable
             properties:
               pinotCluster:
                 type: string
-              schema.json:
+              pinotSchema:
+                type: string
+              pinotTableType:
+                type: string
+              tables.json:
                 type: string
             required:
             - pinotCluster
-            - schema.json
+            - pinotSchema
+            - pinotTableType
+            - tables.json
             type: object
           status:
-            description: PinotSchemaStatus defines the observed state of PinotSchema
+            description: PinotTableStatus defines the observed state of PinotTable
             type: object
         type: object
     served: true
