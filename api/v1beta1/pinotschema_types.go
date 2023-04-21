@@ -22,8 +22,10 @@ import (
 
 // PinotSchemaSpec defines the desired state of PinotSchema
 type PinotSchemaSpec struct {
-	ClusterName string `json:"clusterName"`
-	SchemaJson  string `json:"schema.json,omitempty"`
+	// +required
+	PinotCluster string `json:"pinotCluster"`
+	// +required
+	PinotSchemaJson string `json:"schema.json"`
 }
 
 // PinotSchemaStatus defines the observed state of PinotSchema
@@ -33,7 +35,7 @@ type PinotSchemaStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:printcolumn:name="Pinot_Cluster",type="string",JSONPath=".spec.clusterName"
+// +kubebuilder:printcolumn:name="Pinot_Cluster",type="string",JSONPath=".spec.pinotCluster"
 // PinotSchema is the Schema for the pinotschemas API
 type PinotSchema struct {
 	metav1.TypeMeta   `json:",inline"`

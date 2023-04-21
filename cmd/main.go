@@ -95,17 +95,15 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "PinotController")
 		os.Exit(1)
 	}
-	if err = (schemacontroller.NewPinotReconciler(mgr)).SetupWithManager(mgr); err != nil {
+	if err = (schemacontroller.NewPinotSchemaReconciler(mgr)).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PinotSchemaController")
 		os.Exit(1)
 	}
-	if err = (&tablecontroller.PinotTableReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PinotTable")
+	if err = (tablecontroller.NewPinotTableReconciler(mgr)).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PinotTableController")
 		os.Exit(1)
 	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

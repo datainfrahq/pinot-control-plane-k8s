@@ -43,7 +43,7 @@ type PinotSchemaReconciler struct {
 	Recorder      record.EventRecorder
 }
 
-func NewPinotReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
+func NewPinotSchemaReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
 	initLogger := ctrl.Log.WithName("controllers").WithName("pinot")
 	return &PinotSchemaReconciler{
 		Client:        mgr.GetClient(),

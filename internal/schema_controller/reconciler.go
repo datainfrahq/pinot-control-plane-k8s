@@ -40,25 +40,17 @@ const (
 	PinotSchemaControllerDeleteSuccess = "PinotSchemaControllerDeleteSuccess"
 	PinotSchemaControllerDeleteFail    = "PinotSchemaControllerDeleteFail"
 	PinotSchemaControllerFinalizer     = "pinotschema.datainfra.io/finalizer"
+	PinotControllerPort                = "9000"
 )
 
 func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSchema) error {
-	listOpts := []client.ListOption{
-		client.InNamespace(schema.Namespace),
-		client.MatchingLabels(map[string]string{
-			"custom_resource": schema.Spec.ClusterName,
-			"nodeType":        "controller",
-		}),
-	}
-	svcList := &v1.ServiceList{}
-	if err := r.Client.List(ctx, svcList, listOpts...); err != nil {
+
+	svcName, err := r.getControllerSvcUrl(schema.Namespace, schema.Spec.PinotCluster)
+	if err != nil {
 		return err
 	}
-	var svcName string
 
-	for range svcList.Items {
-		svcName = svcList.Items[0].Name
-	}
+	fmt.Println(makeControllerCreateSchemaPath(svcName))
 
 	getOwnerRef := makeOwnerRef(
 		schema.APIVersion,
@@ -66,7 +58,7 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 		schema.Name,
 		schema.UID,
 	)
-	cm := r.makeSchemaConfigMap(schema, getOwnerRef, schema.Spec.SchemaJson)
+	cm := r.makeSchemaConfigMap(schema, getOwnerRef, schema.Spec.PinotSchemaJson)
 
 	build := builder.NewBuilder(
 		builder.ToNewBuilderConfigMap([]builder.BuilderConfigMap{*cm}),
@@ -82,63 +74,45 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 		return err
 	}
 
-	if resp == controllerutil.OperationResultCreated {
-		if schema.Spec.SchemaJson != "" {
-
-			http := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerUrl(svcName, schema.Namespace)+"/schemas", http.Client{}, []byte(schema.Spec.SchemaJson))
-			resp, err := http.Do()
-			if err != nil {
-				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerCreateFail)
-				return err
-			}
-
-			if getRespCode(resp) != "200" && getRespCode(resp) != "" {
-				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerCreateFail)
-			} else {
-				build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerCreateSuccess)
-			}
+	switch resp {
+	case controllerutil.OperationResultCreated:
+		http := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerCreateSchemaPath(svcName), http.Client{}, []byte(schema.Spec.PinotSchemaJson))
+		resp, err := http.Do()
+		if err != nil {
+			build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerCreateFail)
+			return err
 		}
-	} else if resp == controllerutil.OperationResultUpdated {
-		if schema.Spec.SchemaJson != "" {
-			schemaName, err := getSchemaName(schema.Spec.SchemaJson)
-			if err != nil {
-				return err
-			}
-			http := internalHTTP.NewHTTPClient(http.MethodPut, makeControllerUrl(svcName, schema.Namespace)+"/schemas/"+schemaName, http.Client{}, []byte(schema.Spec.SchemaJson))
-			resp, err := http.Do()
-			if err != nil {
-				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerUpdateFail)
-				return err
-			}
-			if getRespCode(resp) != "200" && getRespCode(resp) != "" {
-				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerUpdateFail)
-			} else {
-				build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerUpdateSuccess)
-			}
-		}
-	}
 
-	if schema.ObjectMeta.DeletionTimestamp.IsZero() {
-		// The object is not being deleted, so if it does not have our finalizer,
-		// then lets add the finalizer and update the object. This is equivalent
-		// registering our finalizer.
-		if !controllerutil.ContainsFinalizer(schema, PinotSchemaControllerFinalizer) {
-			controllerutil.AddFinalizer(schema, PinotSchemaControllerFinalizer)
-			if err := r.Update(ctx, schema); err != nil {
-				return err
-			}
+		if getRespCode(resp) != "200" && getRespCode(resp) != "" {
+			build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerCreateFail)
+		} else {
+			build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerCreateSuccess)
 		}
-	} else {
-		// The object is being deleted
+	case controllerutil.OperationResultUpdated:
+		schemaName, err := getSchemaName(schema.Spec.PinotSchemaJson)
+		if err != nil {
+			return err
+		}
+		http := internalHTTP.NewHTTPClient(http.MethodPut, makeControllerUpdateDeleteSchemaPath(svcName, schemaName), http.Client{}, []byte(schema.Spec.PinotSchemaJson))
+		resp, err := http.Do()
+		if err != nil {
+			build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerUpdateFail)
+			return err
+		}
+		if getRespCode(resp) != "200" && getRespCode(resp) != "" {
+			build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerUpdateFail)
+		} else {
+			build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerUpdateSuccess)
+		}
+	default:
 		if controllerutil.ContainsFinalizer(schema, PinotSchemaControllerFinalizer) {
 			// our finalizer is present, so lets handle any external dependency
 
-			fmt.Println("Deleting")
-			schemaName, err := getSchemaName(schema.Spec.SchemaJson)
+			schemaName, err := getSchemaName(schema.Spec.PinotSchemaJson)
 			if err != nil {
 				return err
 			}
-			http := internalHTTP.NewHTTPClient(http.MethodDelete, makeControllerUrl(svcName, schema.Namespace)+"/schemas/"+schemaName, http.Client{}, []byte{})
+			http := internalHTTP.NewHTTPClient(http.MethodDelete, makeControllerUpdateDeleteSchemaPath(svcName, schemaName), http.Client{}, []byte{})
 			resp, err := http.Do()
 			if err != nil {
 				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerDeleteFail)
@@ -156,7 +130,6 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 				return err
 			}
 		}
-		return nil
 	}
 
 	return nil
@@ -199,10 +172,6 @@ func makeOwnerRef(apiVersion, kind, name string, uid types.UID) *metav1.OwnerRef
 	}
 }
 
-func makeControllerUrl(name, namespace string) string {
-	return "http://" + name + "." + namespace + ".svc.cluster.local:9000"
-}
-
 func getSchemaName(schemaJson string) (string, error) {
 	var err error
 
@@ -212,6 +181,35 @@ func getSchemaName(schemaJson string) (string, error) {
 	}
 
 	return utils.TrimQuote(string(schema["schemaName"])), nil
+}
+
+func makeControllerCreateSchemaPath(svcName string) string { return svcName + "/schemas" }
+
+func makeControllerUpdateDeleteSchemaPath(svcName, schemaName string) string {
+	return svcName + "/schemas/" + schemaName
+}
+
+func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName string) (string, error) {
+	listOpts := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels(map[string]string{
+			"custom_resource": pinotClusterName,
+			"nodeType":        "controller",
+		}),
+	}
+	svcList := &v1.ServiceList{}
+	if err := r.Client.List(context.Background(), svcList, listOpts...); err != nil {
+		return "", err
+	}
+	var svcName string
+
+	for range svcList.Items {
+		svcName = svcList.Items[0].Name
+	}
+
+	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+
+	return newName, nil
 }
 
 func getRespCode(resp []byte) string {

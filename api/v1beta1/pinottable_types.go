@@ -20,20 +20,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type PinotTableType string
+
+const (
+	RealTimeTable    PinotTableType = "realtime"
+	OfflineTimeTable PinotTableType = "offline"
+)
+
 // PinotTableSpec defines the desired state of PinotTable
 type PinotTableSpec struct {
-	Foo string `json:"foo,omitempty"`
+	// +required
+	PinotCluster string `json:"pinotCluster"`
+	// +required
+	PinotSchema string `json:"pinotSchema"`
+	// +required
+	PinotTableType PinotTableType `json:"pinotTableType"`
+	// +required
+	PinotTablesJson string `json:"tables.json"`
 }
 
 // PinotTableStatus defines the observed state of PinotTable
 type PinotTableStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Pinot_Cluster",type="string",JSONPath=".spec.pinotCluster"
+// +kubebuilder:printcolumn:name="Pinot_Schema",type="string",JSONPath=".spec.pinotSchema"
 // PinotTable is the Schema for the pinottables API
 type PinotTable struct {
 	metav1.TypeMeta   `json:",inline"`

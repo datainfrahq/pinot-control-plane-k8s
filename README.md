@@ -23,7 +23,7 @@ Control Plane for deploying and managing heterogenous apache pinot kubernetes cl
 ### Getting Started 
 
 ```
-export STORAGE_CLASS_NAME=civo-volume
+export STORAGE_CLASS_NAME=standard
 make helm-install-pinot-control-plane
 make helm-install-zk-operator
 envsubst < examples/pinot-simple.yaml  | kubectl apply -f - -n pinot
