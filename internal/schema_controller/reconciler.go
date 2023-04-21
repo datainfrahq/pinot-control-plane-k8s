@@ -45,13 +45,6 @@ const (
 
 func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSchema) error {
 
-	svcName, err := r.getControllerSvcUrl(schema.Namespace, schema.Spec.PinotCluster)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(makeControllerCreateSchemaPath(svcName))
-
 	getOwnerRef := makeOwnerRef(
 		schema.APIVersion,
 		schema.Kind,
@@ -75,7 +68,12 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 	}
 
 	switch resp {
+
 	case controllerutil.OperationResultCreated:
+		svcName, err := r.getControllerSvcUrl(schema.Namespace, schema.Spec.PinotCluster)
+		if err != nil {
+			return err
+		}
 		http := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerCreateSchemaPath(svcName), http.Client{}, []byte(schema.Spec.PinotSchemaJson))
 		resp, err := http.Do()
 		if err != nil {
@@ -89,6 +87,10 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 			build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(resp)), PinotSchemaControllerCreateSuccess)
 		}
 	case controllerutil.OperationResultUpdated:
+		svcName, err := r.getControllerSvcUrl(schema.Namespace, schema.Spec.PinotCluster)
+		if err != nil {
+			return err
+		}
 		schemaName, err := getSchemaName(schema.Spec.PinotSchemaJson)
 		if err != nil {
 			return err
@@ -107,6 +109,11 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 	default:
 		if controllerutil.ContainsFinalizer(schema, PinotSchemaControllerFinalizer) {
 			// our finalizer is present, so lets handle any external dependency
+
+			svcName, err := r.getControllerSvcUrl(schema.Namespace, schema.Spec.PinotCluster)
+			if err != nil {
+				return err
+			}
 
 			schemaName, err := getSchemaName(schema.Spec.PinotSchemaJson)
 			if err != nil {
@@ -206,6 +213,8 @@ func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName 
 	for range svcList.Items {
 		svcName = svcList.Items[0].Name
 	}
+
+	fmt.Println(svcList)
 
 	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
