@@ -22,10 +22,10 @@ Based on Kubernetes operators, this control Plane for apche pinot is responsible
 
 ### Features
 - Installation of heterogeneous pinot clusters.
-- Rolling Upgrades
+- Rolling Upgrades and Ordered Deployment
 - Seperation of pinot specific configurations with k8s configurations.
-- Management of tables
-- Management of schema
+- Table Management
+- Schema Mangement
 
 ### Documentation
 
