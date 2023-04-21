@@ -246,6 +246,24 @@ rules:
   - pinotschemas/status
   verbs:
   - get
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinottables
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinottables/status
+  verbs:
+  - get
 {{- end }}
 
 {{- $operatorName := (include "pinot-operator.fullname" .) -}}

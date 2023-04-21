@@ -12,7 +12,7 @@ metadata:
   name: pinottable-viewer-role
 rules:
 - apiGroups:
-  - datainfra.io.datainfra.io
+  - datainfra.io
   resources:
   - pinottables
   verbs:
@@ -20,7 +20,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - datainfra.io.datainfra.io
+  - datainfra.io
   resources:
   - pinottables/status
   verbs:
