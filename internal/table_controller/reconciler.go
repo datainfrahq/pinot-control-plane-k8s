@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	PinotTableControllerCreateSuccess = "PinotSchemaControllerCreateSuccess"
+	PinotTableControllerCreateSuccess = "PinotTableControllerCreateSuccess"
 	PinotTableControllerCreateFail    = "PinotTableControllerCreateFail"
 	PinotTableControllerUpdateSuccess = "PinotTableControllerUpdateSuccess"
 	PinotTableControllerUpdateFail    = "PinotTableControllerUpdateFail"
