@@ -165,3 +165,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinottenants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinottenants/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinottenants/status
+  verbs:
+  - get
+  - patch
+  - update

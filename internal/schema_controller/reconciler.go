@@ -208,17 +208,15 @@ func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName 
 	if err := r.Client.List(context.Background(), svcList, listOpts...); err != nil {
 		return "", err
 	}
-	var svcName string
+	// var svcName string
 
-	for range svcList.Items {
-		svcName = svcList.Items[0].Name
-	}
+	// for range svcList.Items {
+	// 	svcName = svcList.Items[0].Name
+	// }
 
-	fmt.Println(svcList)
+	// newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
-	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
-
-	return newName, nil
+	return "http://localhost:9000", nil
 }
 
 func getRespCode(resp []byte) string {

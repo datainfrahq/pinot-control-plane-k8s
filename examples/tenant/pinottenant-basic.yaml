@@ -1,0 +1,13 @@
+apiVersion: datainfra.io/v1beta1
+kind: PinotTenant
+metadata:
+  name: broker
+spec:
+  pinotCluster: pinot-simple
+  pinotTenantType: broker
+  tenants.json: |-
+    {
+      "tenantRole" : "BROKER",
+      "tenantName" : "broker",
+      "numberOfInstances" : 1
+    }
