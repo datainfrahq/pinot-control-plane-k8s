@@ -50,7 +50,7 @@ func NewPinotReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
 		Log:           initLogger,
 		Scheme:        mgr.GetScheme(),
 		ReconcileWait: lookupReconcileTime(initLogger),
-		Recorder:      mgr.GetEventRecorderFor("pinot-operator"),
+		Recorder:      mgr.GetEventRecorderFor("pinot-control-plane"),
 	}
 }
 
@@ -59,7 +59,6 @@ func NewPinotReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
 //+kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas/finalizers,verbs=update
 
 func (r *PinotSchemaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
 
 	logr := log.FromContext(ctx)
 

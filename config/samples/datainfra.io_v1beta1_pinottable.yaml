@@ -1,0 +1,12 @@
+apiVersion: datainfra.io/v1beta1
+kind: PinotTable
+metadata:
+  labels:
+    app.kubernetes.io/name: pinottable
+    app.kubernetes.io/instance: pinottable-sample
+    app.kubernetes.io/part-of: pinot-control-plane-k8s
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: pinot-control-plane-k8s
+  name: pinottable-sample
+spec:
+  # TODO(user): Add fields here

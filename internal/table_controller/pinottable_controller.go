@@ -1,5 +1,5 @@
 /*
-DataInfra Pinot Control Plane(C) 2023 - 2024 DataInfra.
+DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pinotcontroller
+package tablecontroller
 
 import (
 	"context"
@@ -33,8 +33,8 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// PinotReconciler reconciles a Pinot object
-type PinotReconciler struct {
+// PinotTableReconciler reconciles a PinotTable object
+type PinotTableReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
@@ -43,9 +43,9 @@ type PinotReconciler struct {
 	Recorder      record.EventRecorder
 }
 
-func NewPinotReconciler(mgr ctrl.Manager) *PinotReconciler {
+func NewPinotTableReconciler(mgr ctrl.Manager) *PinotTableReconciler {
 	initLogger := ctrl.Log.WithName("controllers").WithName("pinot")
-	return &PinotReconciler{
+	return &PinotTableReconciler{
 		Client:        mgr.GetClient(),
 		Log:           initLogger,
 		Scheme:        mgr.GetScheme(),
@@ -54,22 +54,15 @@ func NewPinotReconciler(mgr ctrl.Manager) *PinotReconciler {
 	}
 }
 
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinots,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinots/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinots/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;patch
-//+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=datainfra.io,resources=pinottables,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=datainfra.io,resources=pinottables/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=datainfra.io,resources=pinottables/finalizers,verbs=update
 
-func (r *PinotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *PinotTableReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logr := log.FromContext(ctx)
 
-	pinotCR := &v1beta1.Pinot{}
-	err := r.Get(context.TODO(), req.NamespacedName, pinotCR)
+	pinotTableCR := &v1beta1.PinotTable{}
+	err := r.Get(context.TODO(), req.NamespacedName, pinotTableCR)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -77,7 +70,7 @@ func (r *PinotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	if err := r.do(ctx, pinotCR); err != nil {
+	if err := r.do(ctx, pinotTableCR); err != nil {
 		logr.Error(err, err.Error())
 		return ctrl.Result{}, err
 	} else {
@@ -86,9 +79,9 @@ func (r *PinotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *PinotReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *PinotTableReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&datainfraiov1beta1.Pinot{}).
+		For(&datainfraiov1beta1.PinotTable{}).
 		Complete(r)
 }
 
