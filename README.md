@@ -37,7 +37,7 @@ Based on Kubernetes operators, this control Plane for apche pinot is responsible
 
 We believe that Kubernetes can serve as a control plane for any application, including those with data and stateful sets. While Helm charts are useful for configuration management, they don't maintain the state of the application. That's why we've built a control plane based on kubernetes operator pattern that acts as a bridge between your application's requirements and Kubernetes infrastructure. 
 
-Our control plane is specifically designed to improve the user experience of running Apache Pinot clusters. As a distributed database, Pinot can be challenging to run on Kubernetes without the right tools. Our project is based on the [DSOI Spec](https://github.com/datainfrahq/dsoi-spec) and built using the [Operator-Runtime](https://github.com/datainfrahq/operator-runtime) library to provide a more user-friendly and Kubernetes-friendly experience.
+Pinot control plane for k8s is specifically designed to improve the user experience of running Apache Pinot clusters. As a distributed database, Pinot can be challenging to run on Kubernetes without the right tools. Our project is based on the [DSOI Spec](https://github.com/datainfrahq/dsoi-spec) and built using the [Operator-Runtime](https://github.com/datainfrahq/operator-runtime) library to provide a more user-friendly and Kubernetes-friendly experience.
 
 
 
