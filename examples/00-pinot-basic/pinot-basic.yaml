@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-simple
+  name: pinot-basic
 spec:
 
   external:
@@ -27,6 +27,13 @@ spec:
       pinotNodeConfig: broker
 
     - name: pinot-server
+      kind: Statefulset
+      replicas: 1
+      nodeType: server
+      k8sConfig: server
+      pinotNodeConfig: server
+
+    - name: pinot-server-t1
       kind: Statefulset
       replicas: 1
       nodeType: server

@@ -53,7 +53,7 @@ spec:
           status:
             description: PinotSchemaStatus defines the observed state of PinotSchema
             properties:
-              currentSchema.json:
+              currentSchemas.json:
                 type: string
               lastUpdateTime:
                 type: string
@@ -66,7 +66,7 @@ spec:
               type:
                 type: string
             required:
-            - currentSchema.json
+            - currentSchemas.json
             type: object
         type: object
     served: true

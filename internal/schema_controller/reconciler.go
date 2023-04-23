@@ -157,7 +157,7 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 			}
 		}
 	} else if resp.StatusCode == 200 {
-		ok, err := utils.IsEqualJson(schema.Status.CurrentSchemaJson, schema.Spec.PinotSchemaJson)
+		ok, err := utils.IsEqualJson(schema.Status.CurrentSchemasJson, schema.Spec.PinotSchemaJson)
 		if err != nil {
 			return controllerutil.OperationResultNone, err
 		}
@@ -216,7 +216,7 @@ func (r *PinotSchemaReconciler) makePatchPinotSchemaStatus(
 ) (controllerutil.OperationResult, error) {
 	updatedPinotSchemaStatus := v1beta1.PinotSchemaStatus{}
 
-	updatedPinotSchemaStatus.CurrentSchemaJson = schema.Spec.PinotSchemaJson
+	updatedPinotSchemaStatus.CurrentSchemasJson = schema.Spec.PinotSchemaJson
 	updatedPinotSchemaStatus.LastUpdateTime = time.Now().Format(metav1.RFC3339Micro)
 	updatedPinotSchemaStatus.Message = msg
 	updatedPinotSchemaStatus.Reason = reason
@@ -237,7 +237,7 @@ func (r *PinotSchemaReconciler) makePatchPinotSchemaStatus(
 		return controllerutil.OperationResultNone, err
 	}
 
-	return controllerutil.OperationResultUpdatedStatusOnly, err
+	return controllerutil.OperationResultUpdatedStatusOnly, nil
 }
 
 func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName string) (string, error) {

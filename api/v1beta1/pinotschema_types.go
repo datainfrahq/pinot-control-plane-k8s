@@ -40,12 +40,12 @@ const (
 
 // PinotSchemaStatus defines the observed state of PinotSchema
 type PinotSchemaStatus struct {
-	Type              PinotSchemaConditionType `json:"type,omitempty"`
-	Status            v1.ConditionStatus       `json:"status,omitempty"`
-	Reason            string                   `json:"reason,omitempty"`
-	Message           string                   `json:"message,omitempty"`
-	LastUpdateTime    string                   `json:"lastUpdateTime,omitempty"`
-	CurrentSchemaJson string                   `json:"currentSchema.json"`
+	Type               PinotSchemaConditionType `json:"type,omitempty"`
+	Status             v1.ConditionStatus       `json:"status,omitempty"`
+	Reason             string                   `json:"reason,omitempty"`
+	Message            string                   `json:"message,omitempty"`
+	LastUpdateTime     string                   `json:"lastUpdateTime,omitempty"`
+	CurrentSchemasJson string                   `json:"currentSchemas.json"`
 }
 
 // +kubebuilder:object:root=true

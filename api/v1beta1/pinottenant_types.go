@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -37,8 +38,23 @@ type PinotTenantSpec struct {
 	PinotTenantsJson string `json:"tenants.json"`
 }
 
+type PinotTenantConditionType string
+
+const (
+	PinotTenantCreateSuccess PinotTenantConditionType = "PinotTenantCreateSuccess"
+	PinotTenantUpdateSuccess PinotTenantConditionType = "PinotTenantUpdateSuccess"
+	PinotTenantCreateFail    PinotTenantConditionType = "PinotTenantCreateFail"
+	PinotTenantUpdateFail    PinotTenantConditionType = "PinotTenantUpdateFail"
+)
+
 // PinotTenantStatus defines the observed state of PinotTenant
 type PinotTenantStatus struct {
+	Type               PinotTenantConditionType `json:"type,omitempty"`
+	Status             v1.ConditionStatus       `json:"status,omitempty"`
+	Reason             string                   `json:"reason,omitempty"`
+	Message            string                   `json:"message,omitempty"`
+	LastUpdateTime     string                   `json:"lastUpdateTime,omitempty"`
+	CurrentTenantsJson string                   `json:"currentTenants.json"`
 }
 
 //+kubebuilder:object:root=true

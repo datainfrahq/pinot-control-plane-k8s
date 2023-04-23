@@ -17,7 +17,7 @@ kind: PinotTenant
 metadata:
   name: server
 spec:
-  pinotCluster: pinot-simple
+  pinotCluster: pinot-basic
   pinotTenantType: server
   tenants.json: |-
     {

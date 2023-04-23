@@ -84,11 +84,11 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 				return err
 			}
 
-			schemaName, err := getTableName(table.Spec.PinotTablesJson)
+			tenantName, err := getTableName(table.Spec.PinotTablesJson)
 			if err != nil {
 				return err
 			}
-			http := internalHTTP.NewHTTPClient(http.MethodDelete, makeControllerGetUpdateDeleteTablePath(svcName, schemaName), http.Client{}, []byte{})
+			http := internalHTTP.NewHTTPClient(http.MethodDelete, makeControllerGetUpdateDeleteTablePath(svcName, tenantName), http.Client{}, []byte{})
 			resp := http.Do()
 			if resp.Err != nil {
 				build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerDeleteFail)
@@ -262,5 +262,5 @@ func (r *PinotTableReconciler) makePatchPinotTableStatus(
 		return controllerutil.OperationResultNone, err
 	}
 
-	return controllerutil.OperationResultUpdatedStatusOnly, err
+	return controllerutil.OperationResultUpdatedStatusOnly, nil
 }

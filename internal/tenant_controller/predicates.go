@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tablecontroller
+package tenantcontroller
 
 import (
 	"context"
@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	ignoreAnnotation = "pinottable.datainfra.io/reconcile"
+	ignoreAnnotation = "pinottenant.datainfra.io/reconcile"
 )
 
 // All methods to implement GenericPredicates type
@@ -47,14 +47,14 @@ func (GenericPredicates) Update(e event.UpdateEvent) bool {
 }
 
 func Create(e event.CreateEvent, log logr.Logger) bool {
-	predicates := utils.NewCommonPredicates("pinottable-controller", ignoreAnnotation, log)
+	predicates := utils.NewCommonPredicates("pinottenant-controller", ignoreAnnotation, log)
 
 	return predicates.IgnoreObjectPredicate(e.Object) &&
 		predicates.IgnoreNamespacePredicate(e.Object)
 }
 
 func Update(e event.UpdateEvent, log logr.Logger) bool {
-	predicates := utils.NewCommonPredicates("pinottable-controller", ignoreAnnotation, log)
+	predicates := utils.NewCommonPredicates("pinottenant-controller", ignoreAnnotation, log)
 
 	return predicates.IgnoreObjectPredicate(e.ObjectNew) &&
 		predicates.IgnoreNamespacePredicate(e.ObjectNew) &&
