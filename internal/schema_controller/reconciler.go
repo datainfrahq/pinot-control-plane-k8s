@@ -113,43 +113,6 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 	return nil
 }
 
-func (r *PinotSchemaReconciler) makeSchemaConfigMap(
-	schema *v1beta1.PinotSchema,
-	ownerRef *metav1.OwnerReference,
-	data interface{},
-) *builder.BuilderConfigMap {
-
-	configMap := &builder.BuilderConfigMap{
-		CommonBuilder: builder.CommonBuilder{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      schema.GetName() + "-" + "schema",
-				Namespace: schema.GetNamespace(),
-			},
-			Client:   r.Client,
-			CrObject: schema,
-			OwnerRef: *ownerRef,
-		},
-		Data: map[string]string{
-			"schema.json": data.(string),
-		},
-	}
-
-	return configMap
-}
-
-// create owner ref ie pinot controller
-func makeOwnerRef(apiVersion, kind, name string, uid types.UID) *metav1.OwnerReference {
-	controller := true
-
-	return &metav1.OwnerReference{
-		APIVersion: apiVersion,
-		Kind:       kind,
-		Name:       name,
-		UID:        uid,
-		Controller: &controller,
-	}
-}
-
 func (r *PinotSchemaReconciler) CreateOrUpdate(
 	schema *v1beta1.PinotSchema,
 	svcName string,
@@ -293,15 +256,4 @@ func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName 
 	// newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
 	return "http://localhost:9000", nil
-}
-
-func getRespCode(resp []byte) string {
-	var err error
-
-	respMap := make(map[string]json.RawMessage)
-	if err = json.Unmarshal(resp, &respMap); err != nil {
-		return ""
-	}
-
-	return utils.TrimQuote(string(respMap["code"]))
 }

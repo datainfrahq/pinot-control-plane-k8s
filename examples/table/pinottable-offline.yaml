@@ -7,22 +7,21 @@ spec:
   pinotSchema: airlinestats
   pinotTableType: offline
   tables.json: |-
-    {
-      "tableName": "airlineStats",
-      "tableType": "OFFLINE",
-      "segmentsConfig": {
-        "timeColumnName": "DaysSinceEpoch",
-        "timeType": "DAYS",
-        "segmentPushType": "APPEND",
-        "segmentAssignmentStrategy": "BalanceNumSegmentAssignmentStrategy",
-        "replication": "1"
-      },
-      "tenants": {
-        "broker": "broker",
-        "server": "server"
-      },
-      "fieldConfigList": [
-        {
+      {
+        "tableName": "airlineStats",
+        "tableType": "OFFLINE",
+        "segmentsConfig": {
+          "timeColumnName": "DaysSinceEpoch",
+          "timeType": "DAYS",
+          "segmentPushType": "APPEND",
+          "segmentAssignmentStrategy": "BalanceNumSegmentAssignmentStrategy",
+          "replication": "1"
+        },
+        "tenants": {
+          "broker": "broker",
+          "server": "server"
+        },
+        "fieldConfigList": [{
           "name": "ts",
           "encodingType": "DICTIONARY",
           "indexTypes": [
@@ -35,70 +34,66 @@ spec:
               "MONTH"
             ]
           }
-        }
-      ],
-      "tableIndexConfig": {
-        "starTreeIndexConfigs": [
-          {
-            "dimensionsSplitOrder": [
-              "AirlineID",
-              "Origin",
-              "Dest"
-            ],
-            "skipStarNodeCreationForDimensions": [],
-            "functionColumnPairs": [
-              "COUNT__*",
-              "MAX__ArrDelay"
-            ],
-            "maxLeafRecords": 10
+        }],
+        "tableIndexConfig": {
+          "starTreeIndexConfigs": [{
+              "dimensionsSplitOrder": [
+                "AirlineID",
+                "Origin",
+                "Dest"
+              ],
+              "skipStarNodeCreationForDimensions": [],
+              "functionColumnPairs": [
+                "COUNT__*",
+                "MAX__ArrDelay"
+              ],
+              "maxLeafRecords": 10
+            },
+            {
+              "dimensionsSplitOrder": [
+                "Carrier",
+                "CancellationCode",
+                "Origin",
+                "Dest"
+              ],
+              "skipStarNodeCreationForDimensions": [],
+              "functionColumnPairs": [
+                "MAX__CarrierDelay",
+                "AVG__CarrierDelay"
+              ],
+              "maxLeafRecords": 10
+            }
+          ],
+          "enableDynamicStarTreeCreation": true,
+          "loadMode": "MMAP"
+        },
+        "metadata": {
+          "customConfigs": {}
+        },
+        "ingestionConfig": {
+          "transformConfigs": [{
+              "columnName": "ts",
+              "transformFunction": "fromEpochDays(DaysSinceEpoch)"
+            },
+            {
+              "columnName": "tsRaw",
+              "transformFunction": "fromEpochDays(DaysSinceEpoch)"
+            }
+          ]
+        },
+        "tierConfigs": [{
+            "name": "hotTier",
+            "segmentSelectorType": "time",
+            "segmentAge": "3130d",
+            "storageType": "pinot_server",
+            "serverTag": "DefaultTenant_OFFLINE"
           },
           {
-            "dimensionsSplitOrder": [
-              "Carrier",
-              "CancellationCode",
-              "Origin",
-              "Dest"
-            ],
-            "skipStarNodeCreationForDimensions": [],
-            "functionColumnPairs": [
-              "MAX__CarrierDelay",
-              "AVG__CarrierDelay"
-            ],
-            "maxLeafRecords": 10
-          }
-        ],
-        "enableDynamicStarTreeCreation": true,
-        "loadMode": "MMAP"
-      },
-      "metadata": {
-        "customConfigs": {}
-      },
-      "ingestionConfig": {
-        "transformConfigs": [
-          {
-            "columnName": "ts",
-            "transformFunction": "fromEpochDays(DaysSinceEpoch)"
-          },
-          {
-            "columnName": "tsRaw",
-            "transformFunction": "fromEpochDays(DaysSinceEpoch)"
+            "name": "coldTier",
+            "segmentSelectorType": "time",
+            "segmentAge": "3140d",
+            "storageType": "pinot_server",
+            "serverTag": "DefaultTenant_OFFLINE"
           }
         ]
-      },
-      "tierConfigs": [
-        {
-          "name": "hotTier",
-          "segmentSelectorType": "time",
-          "segmentAge": "3130d",
-          "storageType": "pinot_server",
-          "serverTag": "DefaultTenant_OFFLINE"
-        },
-        {
-          "name": "coldTier",
-          "segmentSelectorType": "time",
-          "segmentAge": "3140d",
-          "storageType": "pinot_server",
-          "serverTag": "DefaultTenant_OFFLINE"
-        }
-      ]
-    }
+      }
