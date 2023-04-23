@@ -42,8 +42,8 @@ const (
 	PinotTenantControllerUpdateFail         = "PinotTenantControllerUpdateFail"
 	PinotTenantControllerDeleteSuccess      = "PinotTenantControllerDeleteSuccess"
 	PinotTenantControllerDeleteFail         = "PinotTenantControllerDeleteFail"
-	PinotTenantControllerPatchStatusSuccess = "	PinotTenantControllerPatchStatusSuccess"
-	PinotTenantControllerPatchStatusFail    = "	PinotTenantControllerPatchStatusFail"
+	PinotTenantControllerPatchStatusSuccess = "PinotTenantControllerPatchStatusSuccess"
+	PinotTenantControllerPatchStatusFail    = "PinotTenantControllerPatchStatusFail"
 	PinotTenantControllerFinalizer          = "pinottenant.datainfra.io/finalizer"
 	PinotControllerPort                     = "9000"
 )

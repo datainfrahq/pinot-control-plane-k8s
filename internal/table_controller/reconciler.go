@@ -141,12 +141,12 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 		}
 
 		if resp.StatusCode == 200 {
-			build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerCreateSuccess)
 			result, err := r.makePatchPinotTableStatus(table, PinotTableControllerCreateSuccess, string(resp.RespBody), v1.ConditionTrue, PinotTableControllerCreateSuccess)
 			if err != nil {
+				build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusFail)
 				return controllerutil.OperationResultNone, err
 			}
-			build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusFail)
+			build.Recorder.GenericEvent(table, v1.EventTypeNormal, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerCreateSuccess)
 			return controllerutil.OperationResultCreated, nil
 
 		} else {
@@ -178,7 +178,7 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 					build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusFail)
 					return controllerutil.OperationResultNone, err
 				} else {
-					build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusSuccess)
+					build.Recorder.GenericEvent(table, v1.EventTypeNormal, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusSuccess)
 					return controllerutil.OperationResultUpdated, nil
 				}
 			} else {
