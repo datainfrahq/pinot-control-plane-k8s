@@ -34,8 +34,6 @@ import (
 	datainfraiov1beta1 "github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
 	pinotcontroller "github.com/datainfrahq/pinot-control-plane-k8s/internal/pinot_controller"
 	schemacontroller "github.com/datainfrahq/pinot-control-plane-k8s/internal/schema_controller"
-	tablecontroller "github.com/datainfrahq/pinot-control-plane-k8s/internal/table_controller"
-	tenantcontroller "github.com/datainfrahq/pinot-control-plane-k8s/internal/tenant_controller"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -100,15 +98,15 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "PinotSchemaController")
 		os.Exit(1)
 	}
-	if err = (tablecontroller.NewPinotTableReconciler(mgr)).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PinotTableController")
-		os.Exit(1)
-	}
+	// if err = (tablecontroller.NewPinotTableReconciler(mgr)).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "PinotTableController")
+	// 	os.Exit(1)
+	// }
 
-	if err = (tenantcontroller.NewPinotTenantReconciler(mgr)).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PinotTenantController")
-		os.Exit(1)
-	}
+	// if err = (tenantcontroller.NewPinotTenantReconciler(mgr)).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "PinotTenantController")
+	// 	os.Exit(1)
+	// }
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

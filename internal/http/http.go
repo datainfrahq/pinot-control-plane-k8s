@@ -23,7 +23,7 @@ import (
 )
 
 type PinotHTTP interface {
-	Do() (respBody []byte, err error)
+	Do() HttpResponse
 }
 
 type Client struct {
@@ -31,6 +31,12 @@ type Client struct {
 	URL        string
 	HTTPClient http.Client
 	Body       []byte
+}
+
+type HttpResponse struct {
+	RespBody   []byte
+	Err        error
+	StatusCode int
 }
 
 func NewHTTPClient(method, url string, client http.Client, body []byte) PinotHTTP {
@@ -44,26 +50,26 @@ func NewHTTPClient(method, url string, client http.Client, body []byte) PinotHTT
 	return newClient
 }
 
-func (c *Client) Do() (respBody []byte, err error) {
+func (c *Client) Do() HttpResponse {
 
 	req, err := http.NewRequest(c.Method, c.URL, bytes.NewBuffer(c.Body))
 	if err != nil {
-		return nil, err
+		return HttpResponse{Err: err}
 	}
 
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return HttpResponse{Err: err}
 	}
 
 	defer resp.Body.Close()
 
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return HttpResponse{Err: err}
 	}
 
-	return responseBody, nil
+	return HttpResponse{RespBody: responseBody, Err: nil, StatusCode: resp.StatusCode}
 
 }

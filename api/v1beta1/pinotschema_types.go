@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,8 +29,23 @@ type PinotSchemaSpec struct {
 	PinotSchemaJson string `json:"schema.json"`
 }
 
+type PinotSchemaConditionType string
+
+const (
+	PinotSchemaCreateSuccess PinotSchemaConditionType = "PinotSchemaCreateSuccess"
+	PinotSchemaUpdateSuccess PinotSchemaConditionType = "PinotSchemaUpdateSuccess"
+	PinotSchemaCreateFail    PinotSchemaConditionType = "PinotSchemaCreateFail"
+	PinotSchemaUpdateFail    PinotSchemaConditionType = "PinotSchemaUpdateFail"
+)
+
 // PinotSchemaStatus defines the observed state of PinotSchema
 type PinotSchemaStatus struct {
+	Type              PinotSchemaConditionType `json:"type,omitempty"`
+	Status            v1.ConditionStatus       `json:"status,omitempty"`
+	Reason            string                   `json:"reason,omitempty"`
+	Message           string                   `json:"message,omitempty"`
+	LastUpdateTime    string                   `json:"lastUpdateTime,omitempty"`
+	CurrentSchemaJson string                   `json:"currentSchema.json"`
 }
 
 // +kubebuilder:object:root=true

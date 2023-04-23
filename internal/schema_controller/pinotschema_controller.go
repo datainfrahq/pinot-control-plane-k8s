@@ -27,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
 	datainfraiov1beta1 "github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
@@ -54,10 +55,9 @@ func NewPinotSchemaReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
 	}
 }
 
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas/finalizers,verbs=update
-
+// +kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas/finalizers,verbs=update
 func (r *PinotSchemaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	logr := log.FromContext(ctx)
@@ -83,6 +83,11 @@ func (r *PinotSchemaReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 func (r *PinotSchemaReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&datainfraiov1beta1.PinotSchema{}).
+		WithEventFilter(predicate.Or(
+			GenericPredicates{},
+			predicate.GenerationChangedPredicate{},
+			predicate.LabelChangedPredicate{},
+		)).
 		Complete(r)
 }
 
