@@ -125,16 +125,21 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 		return controllerutil.OperationResultNone, nil
 	}
 
+	fmt.Println(svcName)
+
 	// get schema
 	getHttp := internalHTTP.NewHTTPClient(http.MethodGet, makeControllerGetUpdateDeleteSchemaPath(svcName, schemaName), http.Client{}, []byte{})
 	resp := getHttp.Do()
 	if resp.Err != nil {
+		fmt.Println(resp.StatusCode)
+
 		build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotSchemaControllerGetFail)
 		return controllerutil.OperationResultNone, err
 	}
 
 	// if not found create schema
 	if resp.StatusCode == 404 {
+
 		postHttp := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerCreateSchemaPath(svcName), http.Client{}, []byte(schema.Spec.PinotSchemaJson))
 		resp := postHttp.Do()
 		if resp.Err != nil {

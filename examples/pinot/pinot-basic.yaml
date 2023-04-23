@@ -173,7 +173,6 @@ spec:
                 -Dplugins.dir=/opt/pinot/plugins"
     data: |-
         controller.port=9000
-        cluster.tenant.isolation.enable=false
         controller.data.dir=/var/pinot/controller/data 
         pinot.set.instance.id.to.hostname=true
         controller.task.scheduler.enabled=true

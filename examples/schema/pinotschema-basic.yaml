@@ -15,14 +15,6 @@ spec:
         },
         {
           "dataType": "INT",
-          "name": "lkjhgfsa"
-        },
-        {
-          "dataType": "INT",
-          "name": "linkaaa"
-        },
-        {
-          "dataType": "INT",
           "name": "AirTime"
         },
         {
