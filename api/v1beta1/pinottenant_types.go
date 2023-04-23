@@ -24,8 +24,8 @@ import (
 type PinotTenantType string
 
 const (
-	BrokerTenant PinotTenantType = "broker"
-	ServerTenant PinotTenantType = "server"
+	BrokerTenant PinotTenantType = "BROKER"
+	ServerTenant PinotTenantType = "SERVER"
 )
 
 // PinotTenantSpec defines the desired state of PinotTenant

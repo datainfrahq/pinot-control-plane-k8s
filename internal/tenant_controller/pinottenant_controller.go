@@ -27,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
 	datainfraiov1beta1 "github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
@@ -83,6 +84,11 @@ func (r *PinotTenantReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 func (r *PinotTenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&datainfraiov1beta1.PinotTenant{}).
+		WithEventFilter(predicate.Or(
+			GenericPredicates{},
+			predicate.GenerationChangedPredicate{},
+			predicate.LabelChangedPredicate{},
+		)).
 		Complete(r)
 }
 

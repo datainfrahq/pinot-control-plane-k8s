@@ -145,10 +145,10 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 			result, err := r.makePatchPinotTableStatus(table, PinotTableControllerCreateSuccess, string(resp.RespBody), v1.ConditionTrue, PinotTableControllerCreateSuccess)
 			if err != nil {
 				return controllerutil.OperationResultNone, err
-			} else {
-				build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerCreateFail)
-				return controllerutil.OperationResultCreated, nil
 			}
+			build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusFail)
+			return controllerutil.OperationResultCreated, nil
+
 		} else {
 			_, err := r.makePatchPinotTableStatus(table, PinotTableControllerCreateSuccess, string(resp.RespBody), v1.ConditionTrue, PinotTableControllerCreateFail)
 			if err != nil {
