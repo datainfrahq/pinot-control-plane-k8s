@@ -1,9 +1,9 @@
-### Getting Started With Tenants Management
+## Getting Started With Tenants Management
 
-## prerequisite
+### Prerequisites
 - Create a cluster using the following [doc](./getting_started_tenants.md.md)
 
-## Introduction
+### Introduction
 
 - Pinot tenant CRD belongs to the following GVK
 ```
@@ -42,9 +42,9 @@ const (
 
 - The tenant controller is responsible for creation, updation and deletion of the tenant.
 
-- The table controller uses finalisers ```pinottenant.datainfra.io/finalizer``` for deletion logic.
+- The tenant controller uses finalisers ```pinottenant.datainfra.io/finalizer``` for deletion logic.
 
-### Table Status
+### Tenant Status
 
 - Get the status of pinotschema
 ```
@@ -53,7 +53,7 @@ kubectl get pinottenant -n <namespace> -o yaml
 
 - Tenant controller is patches the status on each reconcile in case of a state change.
 
-- Current state of the tenant is stored in the status of the table CR.
+- Current state of the tenant is stored in the status of the tenant CR.
 
 ```
 

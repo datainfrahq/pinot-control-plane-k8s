@@ -1,9 +1,9 @@
-### Getting Started With Schema Management
+## Getting Started With Schema Management
 
-## prerequisite
+### Prerequisites
 - Create a cluster using the following [doc](./getting_started_local.md)
 
-## Introduction
+### Introduction
 
 - Pinot Schema CRD belongs to the following GVK
 ```

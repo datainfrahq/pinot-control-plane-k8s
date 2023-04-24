@@ -1,9 +1,9 @@
-### Getting Started With Table Management
+## Getting Started With Table Management
 
-## prerequisite
+### Prerequisites
 - Create a cluster using the following [doc](./getting_started_local.md)
 
-## Introduction
+### Introduction
 
 - Pinot Table CRD belongs to the following GVK
 ```
@@ -15,7 +15,7 @@ kind: PinotTable
 
 ```
 apiVersion: datainfra.io/v1beta1
-kind: PinotSchema
+kind: PinotTenant
 metadata:
   name: airlinestats
 spec:
@@ -46,7 +46,7 @@ const (
 
 ### Table Status
 
-- Get the status of pinotschema
+- Get the status of pinottable
 ```
 kubectl get pinottable -n <namespace> -o yaml
 ```
