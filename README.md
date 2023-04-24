@@ -18,7 +18,7 @@
 
 </div>
 
-Based on Kubernetes operators, this control Plane for apche pinot is responsible for deploying and managing heterogenous apache pinot kubernetes clusters and its operations including schema, table and tenants management. This control plane is based on [Dsoi-Spec](https://github.com/datainfrahq/dsoi-spec) and is built using [operator-runtime](https://github.com/datainfrahq/operator-runtime). This is a radical new approach that brings ease of use and decouples application and kubernetes in a way that it becomes easier for day 2 operations. The underlying controllers are built on conditions ie orthogonal concepts and not state machines.
+Based on Kubernetes operators, this control Plane for apche pinot is responsible for deploying and managing heterogenous apache pinot kubernetes clusters and its operations including schema, table and tenants management. This control plane is based on [Dsoi-Spec](https://github.com/datainfrahq/dsoi-spec) and is built using [operator-runtime](https://github.com/datainfrahq/operator-runtime). This is a radical new approach that brings ease of use and decouples application and kubernetes in a way that it becomes easier for day 2 operations. The underlying controllers are built on observed state (conditions) and not state machines.
 
 ## :rocket: Features
 
@@ -50,6 +50,26 @@ Pinot control plane for k8s is specifically designed to improve the user experie
 - For questions and feedback please feel free to reach out to us on [Slack ↗︎](https://launchpass.com/datainfra-workspace).
 - For bugs, please create issue on [GitHub ↗︎](https://github.com/datainfrahq/pinot-control-plane-k8s/issues).
 - For commercial support and consultation, please reach out to us at [`hi@datainfra.io` ↗︎](mailto:hi@datainfra.io).
+
+
+## :question:	FAQ
+
+### Is this project a k8s operator or a control plane ?
+
+This project is based on the Kubernetes operator pattern, but it is not exclusively limited to this pattern. Given the complexity of Pinot, relying solely on Kubernetes operators may or may not be sufficient to effectively manage its operations. Our vision for the project is to create a comprehensive set of tools and utilities that enable seamless deployment and operation of Pinot on Kubernetes.
+
+### Helm Vs Operator
+
+Helm is configuration management tool, it does not maintain the state of the application. When building controllers, there is clear abstraction and concern on 
+
+- who is responsible for applying configuration ?
+- who is responsible for reconciling configuration ?
+
+Helm can template out any yaml, in our case its CR's/operator deployment etc. Once configs are applied its the responsibility of the underlying controllers to reconcile the configuration to achieve desired state.
+
+### Is this project based on state machines ?
+
+- The underlying controllers are based on conditions and NOT state machines. The status of objects is constructable by observation. This project is solely built on observed state, the underlying functions follow the k8s native pattern of ```CreateOrUpdate```. Each resource whether k8s native or in this case of pinot specific resources ie schema/table/tenant, is checked for existense, if not existed created else check for updates and updated. States taken into consideration are orginal, desired and current. 
 
 ## :trophy: Contributing
 
