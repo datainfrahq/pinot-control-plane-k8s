@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,6 +26,7 @@ type PinotTableType string
 const (
 	RealTimeTable    PinotTableType = "realtime"
 	OfflineTimeTable PinotTableType = "offline"
+	HybridTable      PinotTableType = "hybrid"
 )
 
 // PinotTableSpec defines the desired state of PinotTable
@@ -39,8 +41,23 @@ type PinotTableSpec struct {
 	PinotTablesJson string `json:"tables.json"`
 }
 
+type PinotTableConditionType string
+
+const (
+	PinotTableCreateSuccess PinotSchemaConditionType = "PinotTableCreateSuccess"
+	PinotTableUpdateSuccess PinotSchemaConditionType = "PinotTableUpdateSuccess"
+	PinotTableCreateFail    PinotSchemaConditionType = "PinotTableCreateFail"
+	PinotTableUpdateFail    PinotSchemaConditionType = "PinotTableUpdateFail"
+)
+
 // PinotTableStatus defines the observed state of PinotTable
 type PinotTableStatus struct {
+	Type             PinotTableConditionType `json:"type,omitempty"`
+	Status           v1.ConditionStatus      `json:"status,omitempty"`
+	Reason           string                  `json:"reason,omitempty"`
+	Message          string                  `json:"message,omitempty"`
+	LastUpdateTime   string                  `json:"lastUpdateTime,omitempty"`
+	CurrentTableJson string                  `json:"currentTable.json"`
 }
 
 // +kubebuilder:object:root=true

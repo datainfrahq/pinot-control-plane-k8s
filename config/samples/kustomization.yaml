@@ -3,4 +3,5 @@ resources:
 - datainfra.io_v1beta1_pinot.yaml
 - datainfra.io_v1beta1_pinotschema.yaml
 - datainfra.io_v1beta1_pinottable.yaml
+- datainfra.io_v1beta1_pinottenant.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

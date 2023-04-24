@@ -89,6 +89,7 @@ func (r *PinotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *PinotReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&datainfraiov1beta1.Pinot{}).
+		WithEventFilter(GenericPredicates{}).
 		Complete(r)
 }
 

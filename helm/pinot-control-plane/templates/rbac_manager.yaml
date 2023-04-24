@@ -246,6 +246,8 @@ rules:
   - pinotschemas/status
   verbs:
   - get
+  - patch
+  - update
 - apiGroups:
   - datainfra.io
   resources:
@@ -264,6 +266,28 @@ rules:
   - pinottables/status
   verbs:
   - get
+  - patch
+  - update
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinottenants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - datainfra.io
+  resources:
+  - pinottenants/status
+  verbs:
+  - get
+  - patch
+  - update
 {{- end }}
 
 {{- $operatorName := (include "pinot-operator.fullname" .) -}}

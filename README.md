@@ -26,12 +26,16 @@ Based on Kubernetes operators, this control Plane for apche pinot is responsible
 - Rolling Upgrades and Ordered Deployment
 - Seperation of pinot specific configurations with k8s configurations.
 - Table Management
-- Schema Mangement
+- Schema Management
+- Tenant Management (experimental)
 
 ## :books: Documentation
 
-- [Getting Started With Local Storage](./docs/getting_started_local.md)
-- [Getting Started With Deep Storage](./docs/getting_started_deepstorage.md)
+- [Getting Started With Heterogeneous Pinot Clusters](./examples/01-pinot-hetero/)
+- [Getting Started With Schema Management](./docs/pinot_schema_management.md)
+- [Getting Started With Table Management](./docs/pinot_table_management.md)
+- [Getting Started With Tenant Management](./docs/pinot_tenants_management.md)
+
 
 ## :dart: Motivation
 
@@ -52,6 +56,7 @@ Pinot control plane for k8s is specifically designed to improve the user experie
 ### Contributors
 
 <a href="https://github.com/datainfrahq/pinot-control-plane-k8s/graphs/contributors"><img src="https://contrib.rocks/image?repo=datainfrahq/pinot-control-plane-k8s" /></a>
+
 
 ## Note
 Apache®, [Apache Pinot](https://pinot.apache.org), Pinot® are either registered trademarks or trademarks of the Apache Software Foundation in the United States and/or other countries. This project, pinot-control-plane-k8s, is not an Apache Software Foundation project.
