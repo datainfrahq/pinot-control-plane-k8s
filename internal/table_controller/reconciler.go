@@ -77,8 +77,6 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 		}
 	} else {
 		if controllerutil.ContainsFinalizer(table, PinotTableControllerFinalizer) {
-			// our finalizer is present, so lets handle any external dependency
-
 			svcName, err := r.getControllerSvcUrl(table.Namespace, table.Spec.PinotCluster)
 			if err != nil {
 				return err
@@ -119,42 +117,39 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 	// get table name
 	tableName, err := getTableName(table.Spec.PinotTablesJson)
 	if err != nil {
-		return controllerutil.OperationResultNone, nil
+		return controllerutil.OperationResultNone, err
 	}
 
 	// get table
 	getHttp := internalHTTP.NewHTTPClient(http.MethodGet, makeControllerGetUpdateDeleteTablePath(svcName, tableName), http.Client{}, []byte{})
 	resp := getHttp.Do()
 	if resp.Err != nil {
-		build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerGetFail)
-		return controllerutil.OperationResultNone, nil
+		return controllerutil.OperationResultNone, err
 	}
 
 	// if not found create table
 	if string(resp.RespBody) == "{}" {
 
 		postHttp := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerCreateTablePath(svcName), http.Client{}, []byte(table.Spec.PinotTablesJson))
-		resp := postHttp.Do()
-		if resp.Err != nil {
-			build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerCreateFail)
+		respT := postHttp.Do()
+		if respT.Err != nil {
 			return controllerutil.OperationResultNone, err
 		}
 
-		if resp.StatusCode == 200 {
-			result, err := r.makePatchPinotTableStatus(table, PinotTableControllerCreateSuccess, string(resp.RespBody), v1.ConditionTrue, PinotTableControllerCreateSuccess)
+		if respT.StatusCode == 200 {
+			result, err := r.makePatchPinotTableStatus(table, PinotTableControllerCreateSuccess, string(respT.RespBody), v1.ConditionTrue, PinotTableControllerCreateSuccess)
 			if err != nil {
-				build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusFail)
 				return controllerutil.OperationResultNone, err
 			}
-			build.Recorder.GenericEvent(table, v1.EventTypeNormal, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerCreateSuccess)
+			build.Recorder.GenericEvent(table, v1.EventTypeNormal, fmt.Sprintf("Resp [%s], Result [%s]", string(respT.RespBody), result), PinotTableControllerCreateSuccess)
 			return controllerutil.OperationResultCreated, nil
 
 		} else {
-			_, err := r.makePatchPinotTableStatus(table, PinotTableControllerCreateSuccess, string(resp.RespBody), v1.ConditionTrue, PinotTableControllerCreateFail)
+			_, err := r.makePatchPinotTableStatus(table, PinotTableControllerCreateSuccess, string(respT.RespBody), v1.ConditionTrue, PinotTableControllerCreateFail)
 			if err != nil {
 				return controllerutil.OperationResultNone, err
 			}
-			build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerCreateFail)
+			build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(respT.RespBody)), PinotTableControllerCreateFail)
 			return controllerutil.OperationResultCreated, nil
 		}
 	} else if string(resp.RespBody) != "{}" {
@@ -172,15 +167,13 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 			}
 
 			if resp.StatusCode == 200 {
-				build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerUpdateSuccess)
 				result, err := r.makePatchPinotTableStatus(table, PinotTableControllerUpdateSuccess, string(resp.RespBody), v1.ConditionTrue, PinotTableControllerUpdateSuccess)
 				if err != nil {
-					build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusFail)
 					return controllerutil.OperationResultNone, err
-				} else {
-					build.Recorder.GenericEvent(table, v1.EventTypeNormal, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusSuccess)
-					return controllerutil.OperationResultUpdated, nil
 				}
+				build.Recorder.GenericEvent(table, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerUpdateSuccess)
+				build.Recorder.GenericEvent(table, v1.EventTypeNormal, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotTableControllerPatchStatusSuccess)
+				return controllerutil.OperationResultUpdated, nil
 			} else {
 				build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerUpdateFail)
 				return controllerutil.OperationResultNone, err
@@ -220,15 +213,15 @@ func (r *PinotTableReconciler) getControllerSvcUrl(namespace, pinotClusterName s
 	if err := r.Client.List(context.Background(), svcList, listOpts...); err != nil {
 		return "", err
 	}
-	// var svcName string
+	var svcName string
 
-	// for range svcList.Items {
-	// 	svcName = svcList.Items[0].Name
-	// }
+	for range svcList.Items {
+		svcName = svcList.Items[0].Name
+	}
 
-	//newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
-	return "http://localhost:9000", nil
+	return newName, nil
 }
 
 func (r *PinotTableReconciler) makePatchPinotTableStatus(

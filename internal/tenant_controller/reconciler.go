@@ -152,15 +152,15 @@ func (r *PinotTenantReconciler) getControllerSvcUrl(namespace, pinotClusterName 
 	if err := r.Client.List(context.Background(), svcList, listOpts...); err != nil {
 		return "", err
 	}
-	// var svcName string
+	var svcName string
 
-	// for range svcList.Items {
-	// 	svcName = svcList.Items[0].Name
-	// }
+	for range svcList.Items {
+		svcName = svcList.Items[0].Name
+	}
 
-	//newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
-	return "http://localhost:9000", nil
+	return newName, nil
 }
 
 func (r *PinotTenantReconciler) CreateOrUpdate(
@@ -172,7 +172,7 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 	// get tenant name
 	tenantName, err := getTenantName(tenant.Spec.PinotTenantsJson)
 	if err != nil {
-		return controllerutil.OperationResultNone, nil
+		return controllerutil.OperationResultNone, err
 	}
 
 	// get tenant
@@ -189,27 +189,26 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 		postHttp := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerCreateUpdateTenantPath(svcName), http.Client{}, []byte(tenant.Spec.PinotTenantsJson))
 		respT := postHttp.Do()
 		if respT.Err != nil {
-			build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTenantControllerCreateFail)
 			return controllerutil.OperationResultNone, err
 		}
-		fmt.Println("creating", respT.StatusCode)
 		if respT.StatusCode == 200 {
 			_, err := r.makePatchPinotTenantStatus(tenant, PinotTenantControllerCreateSuccess, string(respT.RespBody), v1.ConditionTrue, PinotTenantControllerCreateSuccess)
 			if err != nil {
 				return controllerutil.OperationResultNone, err
 			}
-			build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(respT.RespBody)), PinotTenantControllerCreateSuccess)
+			build.Recorder.GenericEvent(tenant, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(respT.RespBody)), PinotTenantControllerCreateSuccess)
 			return controllerutil.OperationResultCreated, nil
 		} else {
 			_, err := r.makePatchPinotTenantStatus(tenant, PinotTenantControllerCreateFail, string(respT.RespBody), v1.ConditionTrue, PinotTenantControllerCreateFail)
 			if err != nil {
-				build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(respT.RespBody)), PinotTenantControllerPatchStatusFail)
 				return controllerutil.OperationResultNone, err
 			}
+			build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(respT.RespBody)), PinotTenantControllerCreateFail)
 			return controllerutil.OperationResultNone, nil
 		}
 
 	} else if resp.StatusCode == 200 {
+
 		ok, err := utils.IsEqualJson(tenant.Status.CurrentTenantsJson, tenant.Spec.PinotTenantsJson)
 		if err != nil {
 			return controllerutil.OperationResultNone, err
@@ -217,8 +216,7 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 		if !ok {
 			postHttp := internalHTTP.NewHTTPClient(http.MethodPut, makeControllerCreateUpdateTenantPath(svcName), http.Client{}, []byte(tenant.Spec.PinotTenantsJson))
 			respUpdate := postHttp.Do()
-			if resp.Err != nil {
-				build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(respUpdate.RespBody)), PinotTenantControllerCreateFail)
+			if respUpdate.Err != nil {
 				return controllerutil.OperationResultNone, err
 			}
 
@@ -226,12 +224,11 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 				build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(respUpdate.RespBody)), PinotTenantControllerUpdateSuccess)
 				result, err := r.makePatchPinotTenantStatus(tenant, PinotTenantControllerUpdateSuccess, string(respUpdate.RespBody), v1.ConditionTrue, PinotTenantControllerUpdateSuccess)
 				if err != nil {
-					build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(respUpdate.RespBody), result), PinotTenantControllerPatchStatusFail)
 					return controllerutil.OperationResultNone, err
-				} else {
-					build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(respUpdate.RespBody), result), PinotTenantControllerPatchStatusSuccess)
-					return controllerutil.OperationResultUpdated, nil
 				}
+				build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s], Result [%s]", string(respUpdate.RespBody), result), PinotTenantControllerPatchStatusSuccess)
+				return controllerutil.OperationResultUpdated, nil
+
 			} else {
 				build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(respUpdate.RespBody)), PinotTenantControllerUpdateFail)
 				return controllerutil.OperationResultNone, err

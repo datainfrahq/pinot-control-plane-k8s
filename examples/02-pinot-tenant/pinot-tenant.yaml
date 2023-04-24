@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-hetero
+  name: pinot-tenant
 spec:
 
   external:
@@ -20,25 +20,32 @@ spec:
       pinotNodeConfig: controller
     
     - name: pinot-broker
-      kind: Deployment
+      kind: Statefulset
       replicas: 1
       nodeType: broker
       k8sConfig: broker
       pinotNodeConfig: broker
 
-    - name: pinot-server-az1
+    - name: pinot-server
       kind: Statefulset
       replicas: 1
       nodeType: server
-      k8sConfig: server-az1
-      pinotNodeConfig: server-az1
+      k8sConfig: server-realtime
+      pinotNodeConfig: server-realtime
 
-    - name: pinot-server-az2
+    - name: pinot-server-realtime
       kind: Statefulset
       replicas: 1
       nodeType: server
-      k8sConfig: server-az2
-      pinotNodeConfig: server-az2
+      k8sConfig: server-realtime
+      pinotNodeConfig: server-realtime
+
+    - name: pinot-server-offline
+      kind: Statefulset
+      replicas: 1
+      nodeType: server
+      k8sConfig: server-offline
+      pinotNodeConfig: server-offline
     
     - name: pinot-minion
       kind: Statefulset
@@ -66,7 +73,7 @@ spec:
       ports:
       - protocol: TCP
         port: 9000
-        targetPort: 9000  
+        targetPort: 9000
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -85,39 +92,42 @@ spec:
   - name: broker
     serviceAccountName: "default"
     port:
-    - name: broker
+    - name: broker 
       containerPort: 8099
       protocol: TCP
     service:
+      clusterIP: None
       type: ClusterIP
       ports:
       - name: broker
         port: 8099
         protocol: TCP
         targetPort: 8099
-    service:
-      type: ClusterIP
-      ports:
-      - protocol: TCP
-        port: 8099
-        targetPort: 8099
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
     image: apachepinot/pinot:latest
+    storageConfig:
+    - name: broker
+      mountPath: "/var/pinot/broker/data"
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        storageClassName: ${STORAGE_CLASS_NAME}
+        resources:
+          requests:
+            storage: 1Gi
   
-  - name: server-az1
+  - name: server-realtime
     serviceAccountName: "default"
-    image: apachepinot/pinot:latest
     port:
-    - name: netty
-      containerPort: 8098
-      protocol: TCP
-    - name: admin
+    - name: server 
       containerPort: 8097
       protocol: TCP
+    image: apachepinot/pinot:latest
     service:
       type: ClusterIP
+      clusterIP: None
       ports:
       - name: netty
         port: 8098
@@ -127,12 +137,6 @@ spec:
         port: 80
         targetPort: 8097
         name: admin
-    service:
-      type: ClusterIP
-      ports:
-      - protocol: TCP
-        port: 80
-        targetPort: 8097
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -146,19 +150,17 @@ spec:
         resources:
           requests:
             storage: 1Gi
-  
-  - name: server-az2
+
+  - name: server-offline
     serviceAccountName: "default"
-    image: apachepinot/pinot:latest
     port:
-    - name: admin
+    - name: server 
       containerPort: 8097
       protocol: TCP
-    - name: netty
-      containerPort: 8098
-      protocol: TCP
+    image: apachepinot/pinot:latest
     service:
       type: ClusterIP
+      clusterIP: None
       ports:
       - name: netty
         port: 8098
@@ -185,8 +187,15 @@ spec:
   - name: minion
     serviceAccountName: "default"
     image: apachepinot/pinot:latest
+    service:
+      clusterIP: None
+      type: ClusterIP
+      ports:
+      - protocol: TCP
+        port: 9514
+        targetPort: 9514
     port:
-    - name: minion
+    - name: minion 
       containerPort: 9514
       protocol: TCP
     env:
@@ -211,6 +220,7 @@ spec:
                 -Dplugins.dir=/opt/pinot/plugins"
     data: |-
         controller.port=9000
+        cluster.tenant.isolation.enable=false
         controller.data.dir=/var/pinot/controller/data 
         pinot.set.instance.id.to.hostname=true
         controller.task.scheduler.enabled=true
@@ -224,7 +234,7 @@ spec:
       pinot.broker.routing.table.builder.class=random
       pinot.set.instance.id.to.hostname=true
 
-  - name: server-az1
+  - name: server-realtime
     java_opts: "-Xms512M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/opt/pinot/gc-pinot-server.log
                 -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml -Dplugins.dir=/opt/pinot/plugins"
     data: |-
@@ -233,9 +243,9 @@ spec:
       pinot.server.instance.dataDir=/var/pinot/server/data/index
       pinot.server.instance.segmentTarDir=/var/pinot/server/data/segment
       pinot.set.instance.id.to.hostname=true
-      pinot.server.instance.realtime.alloc.offheap=false
-  
-  - name: server-az2
+      pinot.server.instance.realtime.alloc.offheap=true
+
+  - name: server-offline
     java_opts: "-Xms512M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/opt/pinot/gc-pinot-server.log
                 -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml -Dplugins.dir=/opt/pinot/plugins"
     data: |-

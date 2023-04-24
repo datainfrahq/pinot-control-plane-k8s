@@ -26,6 +26,7 @@ type PinotTableType string
 const (
 	RealTimeTable    PinotTableType = "realtime"
 	OfflineTimeTable PinotTableType = "offline"
+	HybridTable      PinotTableType = "hybrid"
 )
 
 // PinotTableSpec defines the desired state of PinotTable

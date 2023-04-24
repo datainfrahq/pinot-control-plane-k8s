@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-basic
+  name: pinot-hetero
 spec:
 
   external:
@@ -30,8 +30,22 @@ spec:
       kind: Statefulset
       replicas: 1
       nodeType: server
-      k8sConfig: server
-      pinotNodeConfig: server
+      k8sConfig: server-realtime
+      pinotNodeConfig: server-realtime
+
+    - name: pinot-server-realtime
+      kind: Statefulset
+      replicas: 1
+      nodeType: server
+      k8sConfig: server-realtime
+      pinotNodeConfig: server-realtime
+
+    - name: pinot-server-offline
+      kind: Statefulset
+      replicas: 1
+      nodeType: server
+      k8sConfig: server-offline
+      pinotNodeConfig: server-offline
     
     - name: pinot-minion
       kind: Statefulset
@@ -104,7 +118,40 @@ spec:
           requests:
             storage: 1Gi
   
-  - name: server
+  - name: server-realtime
+    serviceAccountName: "default"
+    port:
+    - name: server 
+      containerPort: 8097
+      protocol: TCP
+    image: apachepinot/pinot:latest
+    service:
+      type: ClusterIP
+      clusterIP: None
+      ports:
+      - name: netty
+        port: 8098
+        protocol: TCP
+        targetPort: 8098
+      - protocol: TCP
+        port: 80
+        targetPort: 8097
+        name: admin
+    env:
+    - name: LOG4J_CONSOLE_LEVEL
+      value: info
+    storageConfig:
+    - name: server
+      mountPath: "/var/pinot/server/data"
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        storageClassName: ${STORAGE_CLASS_NAME}
+        resources:
+          requests:
+            storage: 1Gi
+
+  - name: server-offline
     serviceAccountName: "default"
     port:
     - name: server 
@@ -187,7 +234,18 @@ spec:
       pinot.broker.routing.table.builder.class=random
       pinot.set.instance.id.to.hostname=true
 
-  - name: server
+  - name: server-realtime
+    java_opts: "-Xms512M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/opt/pinot/gc-pinot-server.log
+                -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml -Dplugins.dir=/opt/pinot/plugins"
+    data: |-
+      pinot.server.netty.port=8098
+      pinot.server.adminapi.port=8097
+      pinot.server.instance.dataDir=/var/pinot/server/data/index
+      pinot.server.instance.segmentTarDir=/var/pinot/server/data/segment
+      pinot.set.instance.id.to.hostname=true
+      pinot.server.instance.realtime.alloc.offheap=true
+
+  - name: server-offline
     java_opts: "-Xms512M -Xmx1G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc*:file=/opt/pinot/gc-pinot-server.log
                 -Dlog4j2.configurationFile=/opt/pinot/conf/log4j2.xml -Dplugins.dir=/opt/pinot/plugins"
     data: |-
