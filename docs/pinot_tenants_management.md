@@ -56,5 +56,17 @@ kubectl get pinottenant -n <namespace> -o yaml
 - Current state of the tenant is stored in the status of the tenant CR.
 
 ```
+status:
+    currentTenants.json: |-
+      {
+        "tenantRole": "BROKER",
+        "tenantName": "sampleBrokerTenant",
+        "numberOfInstances": 1
+      }
+    lastUpdateTime: "2023-04-24T19:38:27.116158Z"
+    message: PinotTenantControllerCreateSuccess
+    reason: '{"status":"Successfully created tenant"}'
+    status: "True"
+    type: PinotTenantControllerCreateSuccess
 
 ```
