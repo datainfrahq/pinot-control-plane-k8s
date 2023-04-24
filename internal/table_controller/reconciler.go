@@ -220,7 +220,6 @@ func (r *PinotTableReconciler) getControllerSvcUrl(namespace, pinotClusterName s
 	}
 
 	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
-
 	return newName, nil
 }
 

@@ -29,5 +29,5 @@ envsubst < examples/02-pinot-tenant/pinot-tenant.yaml  | kubectl apply -f - -n p
 - Create broker tenant by creating a tenant CR.
 
 ```
-kubectl apply -f  02-pinot-tenant/pinottenant-broker.yaml -n pinot 
+kubectl apply -f  examples/02-pinot-tenant/pinottenant-broker.yaml -n pinot 
 ```

@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"net/http"
 	"time"
 
@@ -53,7 +54,7 @@ func (r *PinotTenantReconciler) do(ctx context.Context, tenant *v1beta1.PinotTen
 		builder.ToNewBuilderRecorder(builder.BuilderRecorder{Recorder: r.Recorder, ControllerName: "PinorTableController"}),
 	)
 
-	svcName, err := r.getControllerSvcUrl(tenant.Namespace, tenant.Spec.PinotTenantsJson)
+	svcName, err := r.getControllerSvcUrl(tenant.Namespace, tenant.Spec.PinotCluster)
 	if err != nil {
 		return err
 	}
@@ -180,7 +181,7 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 	resp := getHttp.Do()
 	if resp.Err != nil {
 		build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTenantControllerGetFail)
-		return controllerutil.OperationResultNone, nil
+		return controllerutil.OperationResultNone, resp.Err
 	}
 
 	// if not found create tenant
@@ -189,12 +190,12 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 		postHttp := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerCreateUpdateTenantPath(svcName), http.Client{}, []byte(tenant.Spec.PinotTenantsJson))
 		respT := postHttp.Do()
 		if respT.Err != nil {
-			return controllerutil.OperationResultNone, err
+			return controllerutil.OperationResultNone, respT.Err
 		}
 		if respT.StatusCode == 200 {
 			_, err := r.makePatchPinotTenantStatus(tenant, PinotTenantControllerCreateSuccess, string(respT.RespBody), v1.ConditionTrue, PinotTenantControllerCreateSuccess)
 			if err != nil {
-				return controllerutil.OperationResultNone, err
+				return controllerutil.OperationResultNone, respT.Err
 			}
 			build.Recorder.GenericEvent(tenant, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(respT.RespBody)), PinotTenantControllerCreateSuccess)
 			return controllerutil.OperationResultCreated, nil
