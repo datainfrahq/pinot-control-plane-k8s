@@ -10,7 +10,7 @@ export STORAGE_CLASS_NAME=standard
 make helm-install-pinot-control-plane
 ```
 
-#### Install Zookeeper Opoerator and CR
+#### Install Zookeeper Operator and CR
 ```
 make helm-install-zk-operator
 ```

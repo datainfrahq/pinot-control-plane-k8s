@@ -60,6 +60,18 @@ spec:
       - protocol: TCP
         port: 9000
         targetPort: 9000
+    livenessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      httpGet:
+        path: "/health"
+        port: 9000
+    readinessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      httpGet:
+        path: "/health"
+        port: 9000
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -81,6 +93,18 @@ spec:
     - name: broker 
       containerPort: 8099
       protocol: TCP
+    livenessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      httpGet:
+        path: "/health"
+        port: 8099
+    readinessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      httpGet:
+        path: "/health"
+        port: 8099
     service:
       clusterIP: None
       type: ClusterIP
@@ -111,6 +135,18 @@ spec:
       containerPort: 8097
       protocol: TCP
     image: apachepinot/pinot:latest
+    livenessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      httpGet:
+        path: "/health"
+        port: 8097
+    readinessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      httpGet:
+        path: "/health"
+        port: 8097
     service:
       type: ClusterIP
       clusterIP: None
@@ -140,6 +176,18 @@ spec:
   - name: minion
     serviceAccountName: "default"
     image: apachepinot/pinot:latest
+    livenessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      httpGet:
+        path: "/health"
+        port: 9514
+    readinessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      httpGet:
+        path: "/health"
+        port: 9514
     service:
       clusterIP: None
       type: ClusterIP

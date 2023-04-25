@@ -3,7 +3,7 @@ module github.com/datainfrahq/pinot-control-plane-k8s
 go 1.19
 
 require (
-	github.com/datainfrahq/operator-runtime v0.0.2-0.20230422185019-4fe7b9b92d4c
+	github.com/datainfrahq/operator-runtime v0.0.2-0.20230425161705-667c247a660b
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
