@@ -23,7 +23,8 @@ Based on Kubernetes operators, this control plane for apache pinot is responsibl
 ## :rocket: Features
 
 - Installation of heterogeneous pinot clusters.
-- Rolling Upgrades and Ordered Deployment
+- Rolling Upgrades - Incremental
+- Ordered Deployment 
 - Seperation of pinot specific configurations with k8s configurations.
 - Table Management
 - Schema Management
