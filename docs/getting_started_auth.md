@@ -26,7 +26,8 @@ envsubst < examples/04-pinot-auth/pinotauth-basic.yaml  | kubectl apply -f - -n 
 ### Create a K8 secret in the namespace where pinot cluster is deployed
 
 
-- add secrets to file
+- add secrets to file, the following secrets needs to be same as mentioned
+  in pinot controller properties.
 ```
 cat << EOF > pinot-control-plane-secret
 CONTROL_PLANE_USERNAME=controlplane
