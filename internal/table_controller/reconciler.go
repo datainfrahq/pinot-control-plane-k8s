@@ -47,7 +47,15 @@ const (
 	PinotTableControllerDeleteSuccess      = "PinotTableControllerDeleteSuccess"
 	PinotTableControllerDeleteFail         = "PinotTableControllerDeleteFail"
 	PinotTableControllerFinalizer          = "pinottable.datainfra.io/finalizer"
-	PinotControllerPort                    = "9000"
+)
+
+const (
+	PinotControllerPort = "9000"
+)
+
+const (
+	ControlPlaneUserName = "CONTROL_PLANE_USERNAME"
+	ControlPlanePassword = "CONTROL_PLANE_PASSWORD"
 )
 
 func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable) error {
@@ -61,7 +69,11 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 		return err
 	}
 
-	_, err = r.CreateOrUpdate(table, svcName, *build)
+	basicAuth, err := r.getAuthCreds(ctx, table)
+	if err != nil {
+		return err
+	}
+	_, err = r.CreateOrUpdate(table, svcName, *build, internalHTTP.Auth{BasicAuth: basicAuth})
 	if err != nil {
 		return err
 	}
@@ -86,7 +98,12 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 			if err != nil {
 				return err
 			}
-			http := internalHTTP.NewHTTPClient(http.MethodDelete, makeControllerGetUpdateDeleteTablePath(svcName, tenantName), http.Client{}, []byte{})
+			http := internalHTTP.NewHTTPClient(
+				http.MethodDelete,
+				makeControllerGetUpdateDeleteTablePath(svcName, tenantName),
+				http.Client{}, []byte{},
+				internalHTTP.Auth{BasicAuth: basicAuth},
+			)
 			resp := http.Do()
 			if resp.Err != nil {
 				build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerDeleteFail)
@@ -112,6 +129,7 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 	table *v1beta1.PinotTable,
 	svcName string,
 	build builder.Builder,
+	auth internalHTTP.Auth,
 ) (controllerutil.OperationResult, error) {
 
 	// get table name
@@ -121,7 +139,12 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 	}
 
 	// get table
-	getHttp := internalHTTP.NewHTTPClient(http.MethodGet, makeControllerGetUpdateDeleteTablePath(svcName, tableName), http.Client{}, []byte{})
+	getHttp := internalHTTP.NewHTTPClient(
+		http.MethodGet,
+		makeControllerGetUpdateDeleteTablePath(svcName, tableName),
+		http.Client{}, []byte{},
+		auth,
+	)
 	resp := getHttp.Do()
 	if resp.Err != nil {
 		return controllerutil.OperationResultNone, err
@@ -130,7 +153,13 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 	// if not found create table
 	if string(resp.RespBody) == "{}" {
 
-		postHttp := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerCreateTablePath(svcName), http.Client{}, []byte(table.Spec.PinotTablesJson))
+		postHttp := internalHTTP.NewHTTPClient(
+			http.MethodPost,
+			makeControllerCreateTablePath(svcName),
+			http.Client{},
+			[]byte(table.Spec.PinotTablesJson),
+			auth,
+		)
 		respT := postHttp.Do()
 		if respT.Err != nil {
 			return controllerutil.OperationResultNone, err
@@ -159,7 +188,13 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 		}
 
 		if !ok {
-			postHttp := internalHTTP.NewHTTPClient(http.MethodPut, makeControllerGetUpdateDeleteTablePath(svcName, tableName), http.Client{}, []byte(table.Spec.PinotTablesJson))
+			postHttp := internalHTTP.NewHTTPClient(
+				http.MethodPut,
+				makeControllerGetUpdateDeleteTablePath(svcName, tableName),
+				http.Client{},
+				[]byte(table.Spec.PinotTablesJson),
+				auth,
+			)
 			resp := postHttp.Do()
 			if resp.Err != nil {
 				build.Recorder.GenericEvent(table, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTableControllerCreateFail)
@@ -255,4 +290,38 @@ func (r *PinotTableReconciler) makePatchPinotTableStatus(
 	}
 
 	return controllerutil.OperationResultUpdatedStatusOnly, nil
+}
+
+func (r *PinotTableReconciler) getAuthCreds(ctx context.Context, table *v1beta1.PinotTable) (internalHTTP.BasicAuth, error) {
+	pinot := v1beta1.Pinot{}
+	if err := r.Client.Get(ctx, types.NamespacedName{
+		Namespace: table.Namespace,
+		Name:      table.Spec.PinotCluster,
+	},
+		&pinot,
+	); err != nil {
+		return internalHTTP.BasicAuth{}, err
+	}
+
+	if pinot.Spec.Auth != (v1beta1.Auth{}) {
+		secret := v1.Secret{}
+		if err := r.Client.Get(ctx, types.NamespacedName{
+			Namespace: pinot.Spec.Auth.SecretRef.Namespace,
+			Name:      pinot.Spec.Auth.SecretRef.Name,
+		},
+			&secret,
+		); err != nil {
+			return internalHTTP.BasicAuth{}, err
+		}
+
+		creds := internalHTTP.BasicAuth{
+			UserName: string(secret.Data[ControlPlaneUserName]),
+			Password: string(secret.Data[ControlPlanePassword]),
+		}
+
+		return creds, nil
+
+	}
+
+	return internalHTTP.BasicAuth{}, nil
 }

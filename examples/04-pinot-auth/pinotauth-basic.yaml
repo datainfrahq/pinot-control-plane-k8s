@@ -1,8 +1,14 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-basic
+  name: pinot-auth
 spec:
+
+  auth:
+    type: basic-auth
+    secretRef:
+        name: pinot-control-plane-secret
+        namespace: pinot
 
   external:
 

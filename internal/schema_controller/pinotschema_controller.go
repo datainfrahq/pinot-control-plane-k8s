@@ -58,6 +58,7 @@ func NewPinotSchemaReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
 // +kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=datainfra.io,resources=pinotschemas/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=secret,verbs=get
 func (r *PinotSchemaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	logr := log.FromContext(ctx)

@@ -31,20 +31,30 @@ type Client struct {
 	URL        string
 	HTTPClient http.Client
 	Body       []byte
+	Auth       Auth
 }
 
+type Auth struct {
+	BasicAuth BasicAuth
+}
+
+type BasicAuth struct {
+	UserName string
+	Password string
+}
 type HttpResponse struct {
 	RespBody   []byte
 	Err        error
 	StatusCode int
 }
 
-func NewHTTPClient(method, url string, client http.Client, body []byte) PinotHTTP {
+func NewHTTPClient(method, url string, client http.Client, body []byte, auth Auth) PinotHTTP {
 	newClient := &Client{
 		Method:     method,
 		URL:        url,
 		HTTPClient: client,
 		Body:       body,
+		Auth:       auth,
 	}
 
 	return newClient
@@ -55,6 +65,10 @@ func (c *Client) Do() HttpResponse {
 	req, err := http.NewRequest(c.Method, c.URL, bytes.NewBuffer(c.Body))
 	if err != nil {
 		return HttpResponse{Err: err}
+	}
+
+	if c.Auth.BasicAuth != (BasicAuth{}) {
+		req.SetBasicAuth(c.Auth.BasicAuth.UserName, c.Auth.BasicAuth.Password)
 	}
 
 	req.Header.Add("Content-Type", "application/json")

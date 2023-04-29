@@ -5,7 +5,7 @@ resources:
 - bases/datainfra.io_pinots.yaml
 - bases/datainfra.io_pinotschemas.yaml
 - bases/datainfra.io_pinottables.yaml
-- bases/datainfra.io.datainfra.io_pinottenants.yaml
+- bases/datainfra.io_pinottenants.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
