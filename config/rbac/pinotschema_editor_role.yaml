@@ -24,6 +24,12 @@ rules:
   - update
   - watch
 - apiGroups:
+    - ""
+  resources:
+    - secrets
+  verbs:
+    - get
+- apiGroups:
   - datainfra.io
   resources:
   - pinotschemas/status

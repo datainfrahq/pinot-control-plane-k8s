@@ -46,7 +46,15 @@ const (
 	PinotTenantControllerPatchStatusSuccess = "PinotTenantControllerPatchStatusSuccess"
 	PinotTenantControllerPatchStatusFail    = "PinotTenantControllerPatchStatusFail"
 	PinotTenantControllerFinalizer          = "pinottenant.datainfra.io/finalizer"
-	PinotControllerPort                     = "9000"
+)
+
+const (
+	PinotControllerPort = "9000"
+)
+
+const (
+	ControlPlaneUserName = "CONTROL_PLANE_USERNAME"
+	ControlPlanePassword = "CONTROL_PLANE_PASSWORD"
 )
 
 func (r *PinotTenantReconciler) do(ctx context.Context, tenant *v1beta1.PinotTenant) error {
@@ -59,7 +67,12 @@ func (r *PinotTenantReconciler) do(ctx context.Context, tenant *v1beta1.PinotTen
 		return err
 	}
 
-	_, err = r.CreateOrUpdate(tenant, svcName, *build)
+	basicAuth, err := r.getAuthCreds(ctx, tenant)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.CreateOrUpdate(tenant, svcName, *build, internalHTTP.Auth{BasicAuth: basicAuth})
 	if err != nil {
 		return err
 	}
@@ -87,7 +100,14 @@ func (r *PinotTenantReconciler) do(ctx context.Context, tenant *v1beta1.PinotTen
 			if err != nil {
 				return err
 			}
-			http := internalHTTP.NewHTTPClient(http.MethodDelete, makeControllerDeleteTenantPath(svcName, tenantName, string(tenant.Spec.PinotTenantType)), http.Client{}, []byte{})
+			http := internalHTTP.NewHTTPClient(
+				http.MethodDelete,
+				makeControllerDeleteTenantPath(svcName, tenantName,
+					string(tenant.Spec.PinotTenantType)),
+				http.Client{},
+				[]byte{},
+				internalHTTP.Auth{BasicAuth: basicAuth},
+			)
 			resp := http.Do()
 			if resp.Err != nil {
 				build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTenantControllerDeleteFail)
@@ -168,6 +188,7 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 	tenant *v1beta1.PinotTenant,
 	svcName string,
 	build builder.Builder,
+	auth internalHTTP.Auth,
 ) (controllerutil.OperationResult, error) {
 
 	// get tenant name
@@ -177,7 +198,13 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 	}
 
 	// get tenant
-	getHttp := internalHTTP.NewHTTPClient(http.MethodGet, makeControllerGetTenantPath(svcName, tenantName), http.Client{}, []byte{})
+	getHttp := internalHTTP.NewHTTPClient(
+		http.MethodGet,
+		makeControllerGetTenantPath(svcName, tenantName),
+		http.Client{},
+		[]byte{},
+		auth,
+	)
 	resp := getHttp.Do()
 	if resp.Err != nil {
 		build.Recorder.GenericEvent(tenant, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotTenantControllerGetFail)
@@ -187,7 +214,13 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 	// if not found create tenant
 	if resp.StatusCode == 404 {
 
-		postHttp := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerCreateUpdateTenantPath(svcName), http.Client{}, []byte(tenant.Spec.PinotTenantsJson))
+		postHttp := internalHTTP.NewHTTPClient(
+			http.MethodPost,
+			makeControllerCreateUpdateTenantPath(svcName),
+			http.Client{},
+			[]byte(tenant.Spec.PinotTenantsJson),
+			auth,
+		)
 		respT := postHttp.Do()
 		if respT.Err != nil {
 			return controllerutil.OperationResultNone, respT.Err
@@ -215,7 +248,13 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 			return controllerutil.OperationResultNone, err
 		}
 		if !ok {
-			postHttp := internalHTTP.NewHTTPClient(http.MethodPut, makeControllerCreateUpdateTenantPath(svcName), http.Client{}, []byte(tenant.Spec.PinotTenantsJson))
+			postHttp := internalHTTP.NewHTTPClient(
+				http.MethodPut,
+				makeControllerCreateUpdateTenantPath(svcName),
+				http.Client{},
+				[]byte(tenant.Spec.PinotTenantsJson),
+				auth,
+			)
 			respUpdate := postHttp.Do()
 			if respUpdate.Err != nil {
 				return controllerutil.OperationResultNone, err
@@ -273,4 +312,38 @@ func (r *PinotTenantReconciler) makePatchPinotTenantStatus(
 	}
 
 	return controllerutil.OperationResultUpdatedStatusOnly, nil
+}
+
+func (r *PinotTenantReconciler) getAuthCreds(ctx context.Context, tenant *v1beta1.PinotTenant) (internalHTTP.BasicAuth, error) {
+	pinot := v1beta1.Pinot{}
+	if err := r.Client.Get(ctx, types.NamespacedName{
+		Namespace: tenant.Namespace,
+		Name:      tenant.Spec.PinotCluster,
+	},
+		&pinot,
+	); err != nil {
+		return internalHTTP.BasicAuth{}, err
+	}
+
+	if pinot.Spec.Auth != (v1beta1.Auth{}) {
+		secret := v1.Secret{}
+		if err := r.Client.Get(ctx, types.NamespacedName{
+			Namespace: pinot.Spec.Auth.SecretRef.Namespace,
+			Name:      pinot.Spec.Auth.SecretRef.Name,
+		},
+			&secret,
+		); err != nil {
+			return internalHTTP.BasicAuth{}, err
+		}
+
+		creds := internalHTTP.BasicAuth{
+			UserName: string(secret.Data[ControlPlaneUserName]),
+			Password: string(secret.Data[ControlPlanePassword]),
+		}
+
+		return creds, nil
+
+	}
+
+	return internalHTTP.BasicAuth{}, nil
 }

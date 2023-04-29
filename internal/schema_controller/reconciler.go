@@ -46,7 +46,15 @@ const (
 	PinotSchemaControllerPatchStatusSuccess = "PinotSchemaControllerPatchStatusSuccess"
 	PinotSchemaControllerPatchStatusFail    = "PinotSchemaControllerPatchStatusFail"
 	PinotSchemaControllerFinalizer          = "pinotschema.datainfra.io/finalizer"
-	PinotControllerPort                     = "9000"
+)
+
+const (
+	ControlPlaneUserName = "CONTROL_PLANE_USERNAME"
+	ControlPlanePassword = "CONTROL_PLANE_PASSWORD"
+)
+
+const (
+	PinotControllerPort = "9000"
 )
 
 func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSchema) error {
@@ -55,15 +63,21 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 		builder.ToNewBuilderRecorder(builder.BuilderRecorder{Recorder: r.Recorder, ControllerName: "PinotSchemaController"}),
 	)
 
+	basicAuth, err := r.getAuthCreds(ctx, schema)
+	if err != nil {
+		return err
+	}
+
 	svcName, err := r.getControllerSvcUrl(schema.Namespace, schema.Spec.PinotCluster)
 	if err != nil {
 		return err
 	}
 
-	_, err = r.CreateOrUpdate(schema, svcName, *build)
+	_, err = r.CreateOrUpdate(schema, svcName, *build, internalHTTP.Auth{BasicAuth: basicAuth})
 	if err != nil {
 		return err
 	}
+
 	if schema.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object. This is equivalent
@@ -86,7 +100,13 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 			if err != nil {
 				return err
 			}
-			http := internalHTTP.NewHTTPClient(http.MethodDelete, makeControllerGetUpdateDeleteSchemaPath(svcName, schemaName), http.Client{}, []byte{})
+			http := internalHTTP.NewHTTPClient(
+				http.MethodDelete,
+				makeControllerGetUpdateDeleteSchemaPath(svcName, schemaName),
+				http.Client{},
+				[]byte{},
+				internalHTTP.Auth{BasicAuth: basicAuth},
+			)
 			resp := http.Do()
 			if resp.Err != nil {
 				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotSchemaControllerDeleteFail)
@@ -113,6 +133,7 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 	schema *v1beta1.PinotSchema,
 	svcName string,
 	build builder.Builder,
+	auth internalHTTP.Auth,
 ) (controllerutil.OperationResult, error) {
 
 	// get schema name
@@ -122,10 +143,16 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 	}
 
 	// get schema
-	getHttp := internalHTTP.NewHTTPClient(http.MethodGet, makeControllerGetUpdateDeleteSchemaPath(svcName, schemaName), http.Client{}, []byte{})
+	getHttp := internalHTTP.NewHTTPClient(
+		http.MethodGet,
+		makeControllerGetUpdateDeleteSchemaPath(svcName, schemaName),
+		http.Client{},
+		[]byte{},
+		auth,
+	)
 	resp := getHttp.Do()
 	if resp.Err != nil {
-		return controllerutil.OperationResultNone, err
+		return controllerutil.OperationResultNone, resp.Err
 	}
 
 	// if not found create schema
@@ -133,7 +160,13 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 	if resp.StatusCode == 404 {
 
 		// create schema
-		postHttp := internalHTTP.NewHTTPClient(http.MethodPost, makeControllerCreateSchemaPath(svcName), http.Client{}, []byte(schema.Spec.PinotSchemaJson))
+		postHttp := internalHTTP.NewHTTPClient(
+			http.MethodPost,
+			makeControllerCreateSchemaPath(svcName),
+			http.Client{},
+			[]byte(schema.Spec.PinotSchemaJson),
+			auth,
+		)
 		respS := postHttp.Do()
 		if respS.Err != nil {
 			return controllerutil.OperationResultNone, err
@@ -165,7 +198,13 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 
 		// if desiredstate and currentstate not the same then update
 		if !ok {
-			postHttp := internalHTTP.NewHTTPClient(http.MethodPut, makeControllerGetUpdateDeleteSchemaPath(svcName, schemaName), http.Client{}, []byte(schema.Spec.PinotSchemaJson))
+			postHttp := internalHTTP.NewHTTPClient(
+				http.MethodPut,
+				makeControllerGetUpdateDeleteSchemaPath(svcName, schemaName),
+				http.Client{},
+				[]byte(schema.Spec.PinotSchemaJson),
+				auth,
+			)
 			resp := postHttp.Do()
 			if resp.Err != nil {
 				return controllerutil.OperationResultNone, err
@@ -266,4 +305,38 @@ func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName 
 	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
 	return newName, nil
+}
+
+func (r *PinotSchemaReconciler) getAuthCreds(ctx context.Context, schema *v1beta1.PinotSchema) (internalHTTP.BasicAuth, error) {
+	pinot := v1beta1.Pinot{}
+	if err := r.Client.Get(ctx, types.NamespacedName{
+		Namespace: schema.Namespace,
+		Name:      schema.Spec.PinotCluster,
+	},
+		&pinot,
+	); err != nil {
+		return internalHTTP.BasicAuth{}, err
+	}
+
+	if pinot.Spec.Auth != (v1beta1.Auth{}) {
+		secret := v1.Secret{}
+		if err := r.Client.Get(ctx, types.NamespacedName{
+			Namespace: pinot.Spec.Auth.SecretRef.Namespace,
+			Name:      pinot.Spec.Auth.SecretRef.Name,
+		},
+			&secret,
+		); err != nil {
+			return internalHTTP.BasicAuth{}, err
+		}
+
+		creds := internalHTTP.BasicAuth{
+			UserName: string(secret.Data[ControlPlaneUserName]),
+			Password: string(secret.Data[ControlPlanePassword]),
+		}
+
+		return creds, nil
+
+	}
+
+	return internalHTTP.BasicAuth{}, nil
 }

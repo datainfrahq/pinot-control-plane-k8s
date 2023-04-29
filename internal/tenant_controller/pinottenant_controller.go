@@ -55,10 +55,10 @@ func NewPinotTenantReconciler(mgr ctrl.Manager) *PinotTenantReconciler {
 	}
 }
 
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinottenants,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinottenants/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinottenants/finalizers,verbs=update
-
+// +kubebuilder:rbac:groups=datainfra.io,resources=pinottenants,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=datainfra.io,resources=pinottenants/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=datainfra.io,resources=pinottenants/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=secret,verbs=get
 func (r *PinotTenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logr := log.FromContext(ctx)
 

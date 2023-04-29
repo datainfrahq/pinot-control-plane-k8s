@@ -229,6 +229,14 @@ rules:
     - patch
     - update
 - apiGroups:
+    - ""
+  resources:
+    - secrets
+  verbs:
+    - get
+    - list
+    - watch
+- apiGroups:
   - datainfra.io
   resources:
   - pinotschemas

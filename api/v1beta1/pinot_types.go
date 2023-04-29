@@ -24,6 +24,8 @@ import (
 // PinotSpec defines the desired state of Pinot
 type PinotSpec struct {
 	// +optional
+	Auth Auth `json:"auth"`
+	// +optional
 	Plugins []string `json:"plugins"`
 	// +required
 	DeploymentOrder []PinotNodeType `json:"deploymentOrder"`
@@ -64,6 +66,19 @@ type DeepStorageConfig struct {
 	NodeType PinotNodeType `json:"nodeType"`
 	// +optional
 	Data string `json:"data"`
+}
+
+type AuthType string
+
+const (
+	BasicAuth AuthType = "basic-auth"
+)
+
+type Auth struct {
+	// +required
+	Type AuthType `json:"type"`
+	// +required
+	SecretRef v1.SecretReference `json:"secretRef"`
 }
 
 type K8sConfig struct {

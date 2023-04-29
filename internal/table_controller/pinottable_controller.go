@@ -55,10 +55,10 @@ func NewPinotTableReconciler(mgr ctrl.Manager) *PinotTableReconciler {
 	}
 }
 
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinottables,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinottables/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=datainfra.io,resources=pinottables/finalizers,verbs=update
-
+// +kubebuilder:rbac:groups=datainfra.io,resources=pinottables,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=datainfra.io,resources=pinottables/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=datainfra.io,resources=pinottables/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=secret,verbs=get
 func (r *PinotTableReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logr := log.FromContext(ctx)
 
