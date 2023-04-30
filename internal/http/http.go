@@ -123,7 +123,7 @@ func (c *Client) Do() *Response {
 			if err := json.Unmarshal(responseBody, &pinotErr); err != nil {
 				return &Response{StatusCode: resp.StatusCode, Err: err}
 			}
-			return &Response{PinotErrorResponse: pinotErr}
+			return &Response{StatusCode: resp.StatusCode, PinotErrorResponse: pinotErr}
 		}
 	} else {
 		if resp.StatusCode == 200 {
@@ -135,7 +135,7 @@ func (c *Client) Do() *Response {
 			if err := json.Unmarshal(responseBody, &pinotErr); err != nil {
 				return &Response{StatusCode: resp.StatusCode, Err: err}
 			}
-			return &Response{PinotErrorResponse: pinotErr}
+			return &Response{StatusCode: resp.StatusCode, PinotErrorResponse: pinotErr}
 		}
 	}
 }
