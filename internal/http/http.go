@@ -18,34 +18,23 @@ package http
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 )
 
+// PinotHTTP interface
 type PinotHTTP interface {
-	Do() HttpResponse
+	Do() *Response
 }
 
+// HTTP client
 type Client struct {
 	Method     string
 	URL        string
 	HTTPClient http.Client
 	Body       []byte
 	Auth       Auth
-}
-
-type Auth struct {
-	BasicAuth BasicAuth
-}
-
-type BasicAuth struct {
-	UserName string
-	Password string
-}
-type HttpResponse struct {
-	RespBody   []byte
-	Err        error
-	StatusCode int
 }
 
 func NewHTTPClient(method, url string, client http.Client, body []byte, auth Auth) PinotHTTP {
@@ -60,11 +49,46 @@ func NewHTTPClient(method, url string, client http.Client, body []byte, auth Aut
 	return newClient
 }
 
-func (c *Client) Do() HttpResponse {
+// Auth mechanisms supported by pinot control plane to authenticate
+// with pinot clusters
+type Auth struct {
+	BasicAuth BasicAuth
+}
+
+// BasicAuth
+type BasicAuth struct {
+	UserName string
+	Password string
+}
+
+// Pinot API error Response
+// ex: {"code":404,"error":"Schema not found"}
+type PinotErrorResponse struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+}
+
+// Pinot API success Response
+// ex: {"unrecognizedProperties":{},"status":"airlineStats successfully added"}
+type PinotSuccessResponse struct {
+	UnrecognizedProperties interface{} `json:"unrecognizedProperties"`
+	Status                 string      `json:"status"`
+}
+
+// Response passed to controller
+type Response struct {
+	Err        error
+	StatusCode int
+	PinotErrorResponse
+	PinotSuccessResponse
+}
+
+// Initiate HTTP call to pinot
+func (c *Client) Do() *Response {
 
 	req, err := http.NewRequest(c.Method, c.URL, bytes.NewBuffer(c.Body))
 	if err != nil {
-		return HttpResponse{Err: err}
+		return &Response{Err: err}
 	}
 
 	if c.Auth.BasicAuth != (BasicAuth{}) {
@@ -74,16 +98,44 @@ func (c *Client) Do() HttpResponse {
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return HttpResponse{Err: err}
+		return &Response{Err: err}
 	}
 
 	defer resp.Body.Close()
 
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return HttpResponse{Err: err}
+		return &Response{Err: err}
 	}
 
-	return HttpResponse{RespBody: responseBody, Err: nil, StatusCode: resp.StatusCode}
-
+	// GET /schemas returns 404 when schema not found with code and error as resp.
+	// GET /tenants returns 404 when tenant not found with code and error as resp
+	// GET /tables returns 200 when table not found with an empty response.
+	if string(responseBody) != "{}" {
+		if resp.StatusCode == 200 {
+			var pinotSuccess PinotSuccessResponse
+			if err := json.Unmarshal(responseBody, &pinotSuccess); err != nil {
+				return &Response{Err: err}
+			}
+			return &Response{StatusCode: resp.StatusCode, PinotSuccessResponse: pinotSuccess}
+		} else {
+			var pinotErr PinotErrorResponse
+			if err := json.Unmarshal(responseBody, &pinotErr); err != nil {
+				return &Response{StatusCode: resp.StatusCode, Err: err}
+			}
+			return &Response{PinotErrorResponse: pinotErr}
+		}
+	} else {
+		if resp.StatusCode == 200 {
+			// resp is empty with 200 status code
+			// for tables API force 404
+			return &Response{StatusCode: 404}
+		} else {
+			var pinotErr PinotErrorResponse
+			if err := json.Unmarshal(responseBody, &pinotErr); err != nil {
+				return &Response{StatusCode: resp.StatusCode, Err: err}
+			}
+			return &Response{PinotErrorResponse: pinotErr}
+		}
+	}
 }
