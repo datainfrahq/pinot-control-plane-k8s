@@ -26,7 +26,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/datainfrahq/pinot-control-plane-k8s/api/v1beta1"
@@ -61,8 +60,6 @@ func NewPinotSchemaReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
 // +kubebuilder:rbac:groups="",resources=secret,verbs=get
 func (r *PinotSchemaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	logr := log.FromContext(ctx)
-
 	pinotSchemaCR := &v1beta1.PinotSchema{}
 	err := r.Get(context.TODO(), req.NamespacedName, pinotSchemaCR)
 	if err != nil {
@@ -73,7 +70,6 @@ func (r *PinotSchemaReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	if err := r.do(ctx, pinotSchemaCR); err != nil {
-		logr.Error(err, err.Error())
 		return ctrl.Result{}, err
 	} else {
 		return ctrl.Result{RequeueAfter: r.ReconcileWait}, nil
@@ -86,8 +82,8 @@ func (r *PinotSchemaReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&datainfraiov1beta1.PinotSchema{}).
 		WithEventFilter(predicate.Or(
 			GenericPredicates{},
+			predicate.ResourceVersionChangedPredicate{},
 			predicate.GenerationChangedPredicate{},
-			predicate.LabelChangedPredicate{},
 		)).
 		Complete(r)
 }

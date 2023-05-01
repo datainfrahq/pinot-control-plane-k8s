@@ -44,7 +44,7 @@ type PinotSchemaStatus struct {
 	Status             v1.ConditionStatus       `json:"status,omitempty"`
 	Reason             string                   `json:"reason,omitempty"`
 	Message            string                   `json:"message,omitempty"`
-	LastUpdateTime     string                   `json:"lastUpdateTime,omitempty"`
+	LastUpdateTime     metav1.Time              `json:"lastUpdateTime,omitempty"`
 	CurrentSchemasJson string                   `json:"currentSchemas.json"`
 }
 

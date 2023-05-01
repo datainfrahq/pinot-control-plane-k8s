@@ -39,6 +39,8 @@ type PinotTableSpec struct {
 	PinotTableType PinotTableType `json:"pinotTableType"`
 	// +required
 	PinotTablesJson string `json:"tables.json"`
+	// +optional
+	SegmentReload bool `json:"segmentReload"`
 }
 
 type PinotTableConditionType string
@@ -56,7 +58,7 @@ type PinotTableStatus struct {
 	Status           v1.ConditionStatus      `json:"status,omitempty"`
 	Reason           string                  `json:"reason,omitempty"`
 	Message          string                  `json:"message,omitempty"`
-	LastUpdateTime   string                  `json:"lastUpdateTime,omitempty"`
+	LastUpdateTime   metav1.Time             `json:"lastUpdateTime,omitempty"`
 	CurrentTableJson string                  `json:"currentTable.json"`
 }
 
