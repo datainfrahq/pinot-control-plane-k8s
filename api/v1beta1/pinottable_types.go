@@ -43,23 +43,14 @@ type PinotTableSpec struct {
 	SegmentReload bool `json:"segmentReload"`
 }
 
-type PinotTableConditionType string
-
-const (
-	PinotTableCreateSuccess PinotSchemaConditionType = "PinotTableCreateSuccess"
-	PinotTableUpdateSuccess PinotSchemaConditionType = "PinotTableUpdateSuccess"
-	PinotTableCreateFail    PinotSchemaConditionType = "PinotTableCreateFail"
-	PinotTableUpdateFail    PinotSchemaConditionType = "PinotTableUpdateFail"
-)
-
 // PinotTableStatus defines the observed state of PinotTable
 type PinotTableStatus struct {
-	Type             PinotTableConditionType `json:"type,omitempty"`
-	Status           v1.ConditionStatus      `json:"status,omitempty"`
-	Reason           string                  `json:"reason,omitempty"`
-	Message          string                  `json:"message,omitempty"`
-	LastUpdateTime   metav1.Time             `json:"lastUpdateTime,omitempty"`
-	CurrentTableJson string                  `json:"currentTable.json"`
+	Type             string             `json:"type,omitempty"`
+	Status           v1.ConditionStatus `json:"status,omitempty"`
+	Reason           string             `json:"reason,omitempty"`
+	Message          string             `json:"message,omitempty"`
+	LastUpdateTime   metav1.Time        `json:"lastUpdateTime,omitempty"`
+	CurrentTableJson string             `json:"currentTable.json"`
 }
 
 // +kubebuilder:object:root=true

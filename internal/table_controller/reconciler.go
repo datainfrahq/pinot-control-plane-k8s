@@ -1,18 +1,18 @@
-// /*
-// DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
+/*
+DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-//     http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// */
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package tablecontroller
 
@@ -222,6 +222,27 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 			return controllerutil.OperationResultNone, nil
 		}
 	} else if respGetTable.ResponseBody != "{}" {
+
+		if table.Status.CurrentTableJson == "" {
+			build.Recorder.GenericEvent(
+				table,
+				v1.EventTypeWarning,
+				fmt.Sprintf("Table Exists on Pinot, but status is not updated"),
+				PinotTableControllerUpdateFail,
+			)
+
+			_, err := r.makePatchPinotTableStatus(
+				table,
+				PinotTableControllerCreateSuccess,
+				string(respGetTable.ResponseBody),
+				v1.ConditionTrue,
+				PinotTableControllerCreateSuccess,
+			)
+			if err != nil {
+				return controllerutil.OperationResultNone, err
+			}
+		}
+
 		ok, err := utils.IsEqualJson(
 			table.Status.CurrentTableJson,
 			table.Spec.PinotTablesJson,
@@ -328,8 +349,8 @@ func (r *PinotTableReconciler) getControllerSvcUrl(namespace, pinotClusterName s
 		svcName = svcList.Items[0].Name
 	}
 
-	_ = "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
-	return "http://localhost:9000", nil
+	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	return newName, nil
 }
 
 func (r *PinotTableReconciler) makePatchPinotTableStatus(
@@ -337,7 +358,7 @@ func (r *PinotTableReconciler) makePatchPinotTableStatus(
 	msg string,
 	reason string,
 	status v1.ConditionStatus,
-	pinotTableConditionType v1beta1.PinotTableConditionType,
+	pinotTableConditionType string,
 
 ) (controllerutil.OperationResult, error) {
 

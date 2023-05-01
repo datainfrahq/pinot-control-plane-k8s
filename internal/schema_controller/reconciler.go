@@ -191,7 +191,7 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 				PinotSchemaControllerCreateSuccess,
 				string(respCreatechema.ResponseBody),
 				v1.ConditionTrue,
-				v1beta1.PinotSchemaCreateSuccess,
+				PinotSchemaControllerCreateSuccess,
 			)
 			if err != nil {
 				return controllerutil.OperationResultNone, err
@@ -215,7 +215,7 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 				PinotSchemaControllerCreateFail,
 				string(respCreatechema.ResponseBody),
 				v1.ConditionTrue,
-				v1beta1.PinotSchemaCreateFail,
+				PinotSchemaControllerCreateFail,
 			)
 			if err != nil {
 				return controllerutil.OperationResultNone, err
@@ -231,6 +231,9 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 		}
 	} else if respGetSchema.StatusCode == 200 {
 
+		// at times of mis-match of state, where resource exists on pinot, but
+		// on creation status wasn't updated.
+		// get the current state ie schema and patch the status
 		if schema.Status.CurrentSchemasJson == "" {
 			build.Recorder.GenericEvent(
 				schema,
@@ -244,7 +247,7 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 				PinotSchemaControllerCreateSuccess,
 				string(respGetSchema.ResponseBody),
 				v1.ConditionTrue,
-				v1beta1.PinotSchemaCreateSuccess,
+				PinotSchemaControllerUpdateSuccess,
 			)
 			if err != nil {
 				return controllerutil.OperationResultNone, err
@@ -279,7 +282,7 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 					PinotSchemaControllerUpdateSuccess,
 					string(respUpdateSchema.ResponseBody),
 					v1.ConditionTrue,
-					v1beta1.PinotSchemaUpdateSuccess,
+					PinotSchemaControllerUpdateSuccess,
 				)
 				if err != nil {
 					return controllerutil.OperationResultNone, err
@@ -304,7 +307,7 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 					PinotSchemaControllerUpdateFail,
 					string(respGetSchema.ResponseBody),
 					v1.ConditionTrue,
-					v1beta1.PinotSchemaUpdateFail,
+					PinotSchemaControllerUpdateFail,
 				)
 				if err != nil {
 					return controllerutil.OperationResultNone, err
@@ -347,7 +350,7 @@ func (r *PinotSchemaReconciler) makePatchPinotSchemaStatus(
 	msg string,
 	reason string,
 	status v1.ConditionStatus,
-	pinotSchemaConditionType v1beta1.PinotSchemaConditionType,
+	pinotSchemaConditionType string,
 
 ) (controllerutil.OperationResult, error) {
 
@@ -385,9 +388,9 @@ func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName 
 		svcName = svcList.Items[0].Name
 	}
 
-	_ = "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
-	return "http://localhost:9000", nil
+	return newName, nil
 }
 
 func (r *PinotSchemaReconciler) getAuthCreds(ctx context.Context, schema *v1beta1.PinotSchema) (internalHTTP.BasicAuth, error) {

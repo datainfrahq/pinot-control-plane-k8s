@@ -29,23 +29,14 @@ type PinotSchemaSpec struct {
 	PinotSchemaJson string `json:"schema.json"`
 }
 
-type PinotSchemaConditionType string
-
-const (
-	PinotSchemaCreateSuccess PinotSchemaConditionType = "PinotSchemaCreateSuccess"
-	PinotSchemaUpdateSuccess PinotSchemaConditionType = "PinotSchemaUpdateSuccess"
-	PinotSchemaCreateFail    PinotSchemaConditionType = "PinotSchemaCreateFail"
-	PinotSchemaUpdateFail    PinotSchemaConditionType = "PinotSchemaUpdateFail"
-)
-
 // PinotSchemaStatus defines the observed state of PinotSchema
 type PinotSchemaStatus struct {
-	Type               PinotSchemaConditionType `json:"type,omitempty"`
-	Status             v1.ConditionStatus       `json:"status,omitempty"`
-	Reason             string                   `json:"reason,omitempty"`
-	Message            string                   `json:"message,omitempty"`
-	LastUpdateTime     metav1.Time              `json:"lastUpdateTime,omitempty"`
-	CurrentSchemasJson string                   `json:"currentSchemas.json"`
+	Type               string             `json:"type,omitempty"`
+	Status             v1.ConditionStatus `json:"status,omitempty"`
+	Reason             string             `json:"reason,omitempty"`
+	Message            string             `json:"message,omitempty"`
+	LastUpdateTime     metav1.Time        `json:"lastUpdateTime,omitempty"`
+	CurrentSchemasJson string             `json:"currentSchemas.json"`
 }
 
 // +kubebuilder:object:root=true
