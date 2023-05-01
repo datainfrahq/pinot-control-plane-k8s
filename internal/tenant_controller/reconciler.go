@@ -1,18 +1,18 @@
-// /*
-// DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
+/*
+DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-// 	http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// */
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package tenantcontroller
 
 import (
@@ -84,7 +84,7 @@ func (r *PinotTenantReconciler) do(ctx context.Context, tenant *v1beta1.PinotTen
 		if !controllerutil.ContainsFinalizer(tenant, PinotTenantControllerFinalizer) {
 			controllerutil.AddFinalizer(tenant, PinotTenantControllerFinalizer)
 			if err := r.Update(ctx, tenant); err != nil {
-				return err
+				return nil
 			}
 		}
 	} else {
@@ -108,22 +108,22 @@ func (r *PinotTenantReconciler) do(ctx context.Context, tenant *v1beta1.PinotTen
 				[]byte{},
 				internalHTTP.Auth{BasicAuth: basicAuth},
 			)
-			respDeleteTenant := http.Do()
-			if respDeleteTenant.Err != nil {
-				return respDeleteTenant.Err
+			respDeleteTenant, err := http.Do()
+			if err != nil {
+				return err
 			}
 			if respDeleteTenant.StatusCode != 200 {
 				build.Recorder.GenericEvent(
 					tenant,
 					v1.EventTypeWarning,
-					fmt.Sprintf("Resp [%s]", string(respDeleteTenant.PinotErrorResponse.Error)),
+					fmt.Sprintf("Resp [%s]", string(respDeleteTenant.ResponseBody)),
 					PinotTenantControllerDeleteFail,
 				)
 			} else {
 				build.Recorder.GenericEvent(
 					tenant,
 					v1.EventTypeNormal,
-					fmt.Sprintf("Resp [%s]", string(respDeleteTenant.PinotSuccessResponse.Status)),
+					fmt.Sprintf("Resp [%s]", string(respDeleteTenant.ResponseBody)),
 					PinotTenantControllerDeleteSuccess,
 				)
 			}
@@ -131,7 +131,7 @@ func (r *PinotTenantReconciler) do(ctx context.Context, tenant *v1beta1.PinotTen
 			// remove our finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(tenant, PinotTenantControllerFinalizer)
 			if err := r.Update(ctx, tenant); err != nil {
-				return err
+				return nil
 			}
 		}
 	}
@@ -214,9 +214,9 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 		[]byte{},
 		auth,
 	)
-	respGetTenant := getHttp.Do()
-	if respGetTenant.Err != nil {
-		return controllerutil.OperationResultNone, respGetTenant.Err
+	respGetTenant, err := getHttp.Do()
+	if err != nil {
+		return controllerutil.OperationResultNone, err
 	}
 
 	// if not found create tenant
@@ -229,25 +229,25 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 			[]byte(tenant.Spec.PinotTenantsJson),
 			auth,
 		)
-		respCreateTenant := postHttp.Do()
-		if respCreateTenant.Err != nil {
-			return controllerutil.OperationResultNone, respCreateTenant.Err
+		respCreateTenant, err := postHttp.Do()
+		if err != nil {
+			return controllerutil.OperationResultNone, err
 		}
 		if respCreateTenant.StatusCode == 200 {
 			_, err := r.makePatchPinotTenantStatus(
 				tenant,
 				PinotTenantControllerCreateSuccess,
-				string(respCreateTenant.PinotSuccessResponse.Status),
+				string(respCreateTenant.ResponseBody),
 				v1.ConditionTrue,
 				PinotTenantControllerCreateSuccess,
 			)
 			if err != nil {
-				return controllerutil.OperationResultNone, respCreateTenant.Err
+				return controllerutil.OperationResultNone, err
 			}
 			build.Recorder.GenericEvent(
 				tenant,
 				v1.EventTypeNormal,
-				fmt.Sprintf("Resp [%s]", string(respCreateTenant.PinotSuccessResponse.Status)),
+				fmt.Sprintf("Resp [%s]", string(respCreateTenant.ResponseBody)),
 				PinotTenantControllerCreateSuccess,
 			)
 			return controllerutil.OperationResultCreated, nil
@@ -255,7 +255,7 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 			_, err := r.makePatchPinotTenantStatus(
 				tenant,
 				PinotTenantControllerCreateFail,
-				string(respCreateTenant.PinotErrorResponse.Error),
+				string(respCreateTenant.ResponseBody),
 				v1.ConditionTrue,
 				PinotTenantControllerCreateFail,
 			)
@@ -264,7 +264,7 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 			}
 			build.Recorder.GenericEvent(
 				tenant, v1.EventTypeWarning,
-				fmt.Sprintf("Resp [%s]", string(respCreateTenant.PinotErrorResponse.Error)),
+				fmt.Sprintf("Resp [%s]", string(respCreateTenant.ResponseBody)),
 				PinotTenantControllerCreateFail,
 			)
 			return controllerutil.OperationResultNone, nil
@@ -284,22 +284,22 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 				[]byte(tenant.Spec.PinotTenantsJson),
 				auth,
 			)
-			respUpdateTenant := postHttp.Do()
-			if respUpdateTenant.Err != nil {
-				return controllerutil.OperationResultNone, respUpdateTenant.Err
+			respUpdateTenant, err := postHttp.Do()
+			if err != nil {
+				return controllerutil.OperationResultNone, err
 			}
 
 			if respUpdateTenant.StatusCode == 200 {
 				build.Recorder.GenericEvent(
 					tenant,
 					v1.EventTypeNormal,
-					fmt.Sprintf("Resp [%s]", string(respUpdateTenant.PinotSuccessResponse.Status)),
+					fmt.Sprintf("Resp [%s]", string(respUpdateTenant.ResponseBody)),
 					PinotTenantControllerUpdateSuccess,
 				)
 				_, err := r.makePatchPinotTenantStatus(
 					tenant,
 					PinotTenantControllerUpdateSuccess,
-					string(respUpdateTenant.PinotSuccessResponse.Status),
+					string(respUpdateTenant.ResponseBody),
 					v1.ConditionTrue,
 					PinotTenantControllerUpdateSuccess,
 				)
@@ -309,7 +309,7 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 				build.Recorder.GenericEvent(
 					tenant,
 					v1.EventTypeNormal,
-					fmt.Sprintf("Resp [%s]", string(respUpdateTenant.PinotSuccessResponse.Status)),
+					fmt.Sprintf("Resp [%s]", string(respUpdateTenant.ResponseBody)),
 					PinotTenantControllerPatchStatusSuccess,
 				)
 				return controllerutil.OperationResultUpdated, nil
@@ -318,7 +318,7 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 				build.Recorder.GenericEvent(
 					tenant,
 					v1.EventTypeWarning,
-					fmt.Sprintf("Resp [%s]", string(respUpdateTenant.PinotErrorResponse.Error)),
+					fmt.Sprintf("Resp [%s]", string(respUpdateTenant.ResponseBody)),
 					PinotTenantControllerUpdateFail,
 				)
 				return controllerutil.OperationResultNone, err
@@ -328,36 +328,25 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 	}
 	return controllerutil.OperationResultNone, nil
 }
-
 func (r *PinotTenantReconciler) makePatchPinotTenantStatus(
 	tenant *v1beta1.PinotTenant,
 	msg string,
 	reason string,
 	status v1.ConditionStatus,
-	pinotTenantConditionType v1beta1.PinotTenantConditionType,
+	pinotTenantConditionType string,
 
 ) (controllerutil.OperationResult, error) {
-	updatedPinotTenantStatus := v1beta1.PinotTenantStatus{}
 
-	updatedPinotTenantStatus.CurrentTenantsJson = tenant.Spec.PinotTenantsJson
-	updatedPinotTenantStatus.LastUpdateTime = time.Now().Format(metav1.RFC3339Micro)
-	updatedPinotTenantStatus.Message = msg
-	updatedPinotTenantStatus.Reason = reason
-	updatedPinotTenantStatus.Status = status
-	updatedPinotTenantStatus.Type = pinotTenantConditionType
-
-	patchBytes, err := json.Marshal(map[string]v1beta1.PinotTenantStatus{
-		"status": updatedPinotTenantStatus})
-	if err != nil {
-		return controllerutil.OperationResultNone, err
-	}
-
-	if err := r.Client.Status().Patch(
-		context.TODO(),
-		tenant,
-		client.RawPatch(types.MergePatchType,
-			patchBytes,
-		)); err != nil {
+	if _, _, err := utils.PatchStatus(context.Background(), r.Client, tenant, func(obj client.Object) client.Object {
+		in := obj.(*v1beta1.PinotTenant)
+		in.Status.CurrentTenantsJson = tenant.Spec.PinotTenantsJson
+		in.Status.LastUpdateTime = metav1.Time{Time: time.Now()}
+		in.Status.Message = msg
+		in.Status.Reason = reason
+		in.Status.Status = status
+		in.Status.Type = pinotTenantConditionType
+		return in
+	}); err != nil {
 		return controllerutil.OperationResultNone, err
 	}
 

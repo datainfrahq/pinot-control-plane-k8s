@@ -1,18 +1,18 @@
-// /*
-// DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
+/*
+DataInfra Pinot Control Plane (C) 2023 - 2024 DataInfra.
 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-//     http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// */
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package tablecontroller
 
@@ -77,6 +77,7 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 	if err != nil {
 		return err
 	}
+
 	if table.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so if it does not have our finalizer,
 		// 	then lets add the finalizer and update the object. This is equivalent
@@ -84,7 +85,7 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 		if !controllerutil.ContainsFinalizer(table, PinotTableControllerFinalizer) {
 			controllerutil.AddFinalizer(table, PinotTableControllerFinalizer)
 			if err := r.Update(ctx, table); err != nil {
-				return err
+				return nil
 			}
 		}
 	} else {
@@ -104,22 +105,22 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 				http.Client{}, []byte{},
 				internalHTTP.Auth{BasicAuth: basicAuth},
 			)
-			respDeleteTable := http.Do()
-			if respDeleteTable.Err != nil {
-				return respDeleteTable.Err
+			respDeleteTable, err := http.Do()
+			if err != nil {
+				return err
 			}
 			if respDeleteTable.StatusCode != 200 {
 				build.Recorder.GenericEvent(
 					table,
 					v1.EventTypeWarning,
-					fmt.Sprintf("Resp [%s]", string(respDeleteTable.PinotErrorResponse.Error)),
+					fmt.Sprintf("Resp [%s]", string(respDeleteTable.ResponseBody)),
 					PinotTableControllerDeleteFail,
 				)
 			} else {
 				build.Recorder.GenericEvent(
 					table,
 					v1.EventTypeNormal,
-					fmt.Sprintf("Resp [%s]", string(respDeleteTable.PinotSuccessResponse.Status)),
+					fmt.Sprintf("Resp [%s]", string(respDeleteTable.ResponseBody)),
 					PinotTableControllerDeleteSuccess,
 				)
 			}
@@ -127,13 +128,15 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 			// remove our finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(table, PinotTableControllerFinalizer)
 			if err := r.Update(ctx, table); err != nil {
-				return err
+				return nil
 			}
 		}
 	}
 	return nil
 }
 
+// Get table if does not exist create
+// if exists check for update
 func (r *PinotTableReconciler) CreateOrUpdate(
 	table *v1beta1.PinotTable,
 	svcName string,
@@ -155,14 +158,13 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 		auth,
 	)
 
-	respGetTable := getHttp.Do()
-	if respGetTable.Err != nil {
+	respGetTable, err := getHttp.Do()
+	if err != nil {
 		return controllerutil.OperationResultNone, err
 	}
 
-	fmt.Println(respGetTable)
-	// if not found create table
-	if respGetTable.StatusCode == 404 {
+	// get - an empty response
+	if respGetTable.ResponseBody == "{}" {
 
 		postHttp := internalHTTP.NewHTTPClient(
 			http.MethodPost,
@@ -171,16 +173,20 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 			[]byte(table.Spec.PinotTablesJson),
 			auth,
 		)
-		respCreateTable := postHttp.Do()
-		if respCreateTable.Err != nil {
+		// create table
+		respCreateTable, err := postHttp.Do()
+		if err != nil {
 			return controllerutil.OperationResultNone, err
 		}
 
+		// create success
 		if respCreateTable.StatusCode == 200 {
-			result, err := r.makePatchPinotTableStatus(
+
+			// patch resource
+			_, err := r.makePatchPinotTableStatus(
 				table,
 				PinotTableControllerCreateSuccess,
-				string(respCreateTable.PinotSuccessResponse.Status),
+				string(respCreateTable.ResponseBody),
 				v1.ConditionTrue,
 				PinotTableControllerCreateSuccess,
 			)
@@ -190,7 +196,7 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 			build.Recorder.GenericEvent(
 				table,
 				v1.EventTypeNormal,
-				fmt.Sprintf("Resp [%s], Result [%s]", string(respCreateTable.PinotSuccessResponse.Status), result),
+				fmt.Sprintf("Resp [%s]", string(respCreateTable.ResponseBody)),
 				PinotTableControllerCreateSuccess,
 			)
 			return controllerutil.OperationResultCreated, nil
@@ -198,23 +204,45 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 		} else {
 			_, err := r.makePatchPinotTableStatus(
 				table,
-				PinotTableControllerCreateFail,
-				string(respCreateTable.PinotErrorResponse.Error),
+				PinotTableControllerCreateSuccess,
+				string(respCreateTable.ResponseBody),
 				v1.ConditionTrue,
-				PinotTableControllerCreateFail,
+				PinotTableControllerCreateSuccess,
 			)
 			if err != nil {
 				return controllerutil.OperationResultNone, err
 			}
+
 			build.Recorder.GenericEvent(
 				table,
 				v1.EventTypeWarning,
-				fmt.Sprintf("Resp [%s]", string(respCreateTable.PinotErrorResponse.Error)),
+				fmt.Sprintf("Resp [%s]", string(respCreateTable.ResponseBody)),
 				PinotTableControllerCreateFail,
 			)
 			return controllerutil.OperationResultNone, nil
 		}
-	} else if respGetTable.StatusCode == 200 {
+	} else if respGetTable.ResponseBody != "{}" {
+
+		if table.Status.CurrentTableJson == "" {
+			build.Recorder.GenericEvent(
+				table,
+				v1.EventTypeWarning,
+				fmt.Sprintf("Table Exists on Pinot, but status is not updated"),
+				PinotTableControllerUpdateFail,
+			)
+
+			_, err := r.makePatchPinotTableStatus(
+				table,
+				PinotTableControllerCreateSuccess,
+				string(respGetTable.ResponseBody),
+				v1.ConditionTrue,
+				PinotTableControllerCreateSuccess,
+			)
+			if err != nil {
+				return controllerutil.OperationResultNone, err
+			}
+		}
+
 		ok, err := utils.IsEqualJson(
 			table.Status.CurrentTableJson,
 			table.Spec.PinotTablesJson,
@@ -231,16 +259,16 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 				[]byte(table.Spec.PinotTablesJson),
 				auth,
 			)
-			respUpdateTable := postHttp.Do()
-			if respUpdateTable.Err != nil {
-				return controllerutil.OperationResultNone, respUpdateTable.Err
+			respUpdateTable, err := postHttp.Do()
+			if err != nil {
+				return controllerutil.OperationResultNone, err
 			}
 
 			if respUpdateTable.StatusCode == 200 {
 				_, err := r.makePatchPinotTableStatus(
 					table,
 					PinotTableControllerUpdateSuccess,
-					string(respUpdateTable.PinotSuccessResponse.Status),
+					string(respUpdateTable.ResponseBody),
 					v1.ConditionTrue,
 					PinotTableControllerUpdateSuccess,
 				)
@@ -250,21 +278,22 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 				build.Recorder.GenericEvent(
 					table,
 					v1.EventTypeNormal,
-					fmt.Sprintf("Resp [%s]", string(respUpdateTable.PinotSuccessResponse.Status)),
+					fmt.Sprintf("Resp [%s]", string(respUpdateTable.ResponseBody)),
 					PinotTableControllerUpdateSuccess,
 				)
 				build.Recorder.GenericEvent(
 					table,
 					v1.EventTypeNormal,
-					fmt.Sprintf("Resp [%s]", string(respUpdateTable.PinotSuccessResponse.Status)),
+					fmt.Sprintf("Resp [%s]", string(respUpdateTable.ResponseBody)),
 					PinotTableControllerPatchStatusSuccess)
+
 				return controllerutil.OperationResultUpdated, nil
 			} else {
 				// patch status with failure and emit events
 				_, err := r.makePatchPinotTableStatus(
 					table,
 					PinotTableControllerUpdateFail,
-					string(respUpdateTable.PinotErrorResponse.Error),
+					string(respUpdateTable.ResponseBody),
 					v1.ConditionTrue,
 					PinotTableControllerUpdateFail,
 				)
@@ -274,10 +303,10 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 				build.Recorder.GenericEvent(
 					table,
 					v1.EventTypeWarning,
-					fmt.Sprintf("Resp [%s]", string(respUpdateTable.PinotErrorResponse.Error)),
+					fmt.Sprintf("Resp [%s]", string(respUpdateTable.ResponseBody)),
 					PinotTableControllerUpdateFail,
 				)
-				return controllerutil.OperationResultNone, respUpdateTable.Err
+				return controllerutil.OperationResultNone, err
 			}
 		}
 	}
@@ -320,8 +349,8 @@ func (r *PinotTableReconciler) getControllerSvcUrl(namespace, pinotClusterName s
 		svcName = svcList.Items[0].Name
 	}
 
-	_ = "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
-	return "http://localhost:9000", nil
+	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	return newName, nil
 }
 
 func (r *PinotTableReconciler) makePatchPinotTableStatus(
@@ -329,29 +358,20 @@ func (r *PinotTableReconciler) makePatchPinotTableStatus(
 	msg string,
 	reason string,
 	status v1.ConditionStatus,
-	pinotTableConditionType v1beta1.PinotTableConditionType,
+	pinotTableConditionType string,
 
 ) (controllerutil.OperationResult, error) {
-	updatedPinotTableStatus := v1beta1.PinotTableStatus{}
 
-	updatedPinotTableStatus.CurrentTableJson = table.Spec.PinotTablesJson
-	updatedPinotTableStatus.LastUpdateTime = time.Now().Format(metav1.RFC3339Micro)
-	updatedPinotTableStatus.Message = msg
-	updatedPinotTableStatus.Reason = reason
-	updatedPinotTableStatus.Status = status
-	updatedPinotTableStatus.Type = pinotTableConditionType
-
-	patchBytes, err := json.Marshal(map[string]v1beta1.PinotTableStatus{"status": updatedPinotTableStatus})
-	if err != nil {
-		return controllerutil.OperationResultNone, err
-	}
-
-	if err := r.Client.Status().Patch(
-		context.Background(),
-		table,
-		client.RawPatch(types.MergePatchType,
-			patchBytes,
-		)); err != nil {
+	if _, _, err := utils.PatchStatus(context.Background(), r.Client, table, func(obj client.Object) client.Object {
+		in := obj.(*v1beta1.PinotTable)
+		in.Status.CurrentTableJson = table.Spec.PinotTablesJson
+		in.Status.LastUpdateTime = metav1.Time{Time: time.Now()}
+		in.Status.Message = msg
+		in.Status.Reason = reason
+		in.Status.Status = status
+		in.Status.Type = pinotTableConditionType
+		return in
+	}); err != nil {
 		return controllerutil.OperationResultNone, err
 	}
 

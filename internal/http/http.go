@@ -18,14 +18,13 @@ package http
 
 import (
 	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 )
 
 // PinotHTTP interface
 type PinotHTTP interface {
-	Do() *Response
+	Do() (*Response, error)
 }
 
 // HTTP client
@@ -61,34 +60,22 @@ type BasicAuth struct {
 	Password string
 }
 
-// Pinot API error Response
-// ex: {"code":404,"error":"Schema not found"}
-type PinotErrorResponse struct {
-	Code  int    `json:"code"`
-	Error string `json:"error"`
-}
-
-// Pinot API success Response
-// ex: {"unrecognizedProperties":{},"status":"airlineStats successfully added"}
-type PinotSuccessResponse struct {
-	UnrecognizedProperties interface{} `json:"unrecognizedProperties"`
-	Status                 string      `json:"status"`
-}
-
 // Response passed to controller
 type Response struct {
-	Err        error
-	StatusCode int
-	PinotErrorResponse
-	PinotSuccessResponse
+	ResponseBody string
+	StatusCode   int
 }
 
-// Initiate HTTP call to pinot
-func (c *Client) Do() *Response {
+// GET /schemas returns 404 when schema not found with code and error as resp.
+// GET /tenants returns 404 when tenant not found with code and error as resp
+// GET /tables returns 200 when table not found with an empty response.
+
+// Do method to be used schema and tenant controller.
+func (c *Client) Do() (*Response, error) {
 
 	req, err := http.NewRequest(c.Method, c.URL, bytes.NewBuffer(c.Body))
 	if err != nil {
-		return &Response{Err: err}
+		return nil, err
 	}
 
 	if c.Auth.BasicAuth != (BasicAuth{}) {
@@ -98,44 +85,15 @@ func (c *Client) Do() *Response {
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return &Response{Err: err}
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return &Response{Err: err}
+		return nil, err
 	}
 
-	// GET /schemas returns 404 when schema not found with code and error as resp.
-	// GET /tenants returns 404 when tenant not found with code and error as resp
-	// GET /tables returns 200 when table not found with an empty response.
-	if string(responseBody) != "{}" {
-		if resp.StatusCode == 200 {
-			var pinotSuccess PinotSuccessResponse
-			if err := json.Unmarshal(responseBody, &pinotSuccess); err != nil {
-				return &Response{Err: err}
-			}
-			return &Response{StatusCode: resp.StatusCode, PinotSuccessResponse: pinotSuccess}
-		} else {
-			var pinotErr PinotErrorResponse
-			if err := json.Unmarshal(responseBody, &pinotErr); err != nil {
-				return &Response{StatusCode: resp.StatusCode, Err: err}
-			}
-			return &Response{StatusCode: resp.StatusCode, PinotErrorResponse: pinotErr}
-		}
-	} else {
-		if resp.StatusCode == 200 {
-			// resp is empty with 200 status code
-			// for tables API force 404
-			return &Response{StatusCode: 404}
-		} else {
-			var pinotErr PinotErrorResponse
-			if err := json.Unmarshal(responseBody, &pinotErr); err != nil {
-				return &Response{StatusCode: resp.StatusCode, Err: err}
-			}
-			return &Response{StatusCode: resp.StatusCode, PinotErrorResponse: pinotErr}
-		}
-	}
+	return &Response{ResponseBody: string(responseBody), StatusCode: resp.StatusCode}, nil
 }

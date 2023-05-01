@@ -52,6 +52,7 @@ spec:
               currentTenants.json:
                 type: string
               lastUpdateTime:
+                format: date-time
                 type: string
               message:
                 type: string
