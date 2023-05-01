@@ -107,15 +107,24 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 				[]byte{},
 				internalHTTP.Auth{BasicAuth: basicAuth},
 			)
-			resp := http.Do()
-			if resp.Err != nil {
-				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotSchemaControllerDeleteFail)
-				return err
+			respDeleteSchema := http.Do()
+			if respDeleteSchema.Err != nil {
+				return respDeleteSchema.Err
 			}
-			if resp.StatusCode != 200 {
-				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotSchemaControllerDeleteFail)
+			if respDeleteSchema.StatusCode != 200 {
+				build.Recorder.GenericEvent(
+					schema,
+					v1.EventTypeWarning,
+					fmt.Sprintf("Resp [%s]", string(respDeleteSchema.PinotErrorResponse.Error)),
+					PinotSchemaControllerDeleteFail,
+				)
 			} else {
-				build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotSchemaControllerDeleteSuccess)
+				build.Recorder.GenericEvent(
+					schema,
+					v1.EventTypeNormal,
+					fmt.Sprintf("Resp [%s]", string(respDeleteSchema.PinotSuccessResponse.Status)),
+					PinotSchemaControllerDeleteSuccess,
+				)
 			}
 
 			// remove our finalizer from the list and update it.
@@ -150,14 +159,15 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 		[]byte{},
 		auth,
 	)
-	resp := getHttp.Do()
-	if resp.Err != nil {
-		return controllerutil.OperationResultNone, resp.Err
+
+	respGetSchema := getHttp.Do()
+	if respGetSchema.Err != nil {
+		return controllerutil.OperationResultNone, respGetSchema.Err
 	}
 
 	// if not found create schema
 	// else check for updates
-	if resp.StatusCode == 404 {
+	if respGetSchema.PinotErrorResponse.Code == 404 {
 
 		// create schema
 		postHttp := internalHTTP.NewHTTPClient(
@@ -167,30 +177,58 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 			[]byte(schema.Spec.PinotSchemaJson),
 			auth,
 		)
-		respS := postHttp.Do()
-		if respS.Err != nil {
-			return controllerutil.OperationResultNone, err
+
+		respCreatechema := postHttp.Do()
+		if respCreatechema.Err != nil {
+			return controllerutil.OperationResultNone, respCreatechema.Err
 		}
-		// if respS 200, patch status and emit event
-		// patch status will store the current state
-		if respS.StatusCode == 200 {
-			result, err := r.makePatchPinotSchemaStatus(schema, PinotSchemaControllerCreateSuccess, string(respS.RespBody), v1.ConditionTrue, v1beta1.PinotSchemaCreateSuccess)
+
+		if respCreatechema.StatusCode == 200 {
+			result, err := r.makePatchPinotSchemaStatus(
+				schema,
+				PinotSchemaControllerCreateSuccess,
+				string(respCreatechema.PinotSuccessResponse.Status),
+				v1.ConditionTrue,
+				v1beta1.PinotSchemaCreateSuccess,
+			)
 			if err != nil {
 				return controllerutil.OperationResultNone, err
 			}
-			build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(respS.RespBody)), PinotSchemaControllerCreateSuccess)
-			build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s], Result [%s]", string(respS.RespBody), result), PinotSchemaControllerPatchStatusSuccess)
+			build.Recorder.GenericEvent(
+				schema,
+				v1.EventTypeNormal,
+				fmt.Sprintf("Resp [%s]", string(respCreatechema.PinotSuccessResponse.Status)),
+				PinotSchemaControllerCreateSuccess,
+			)
+			build.Recorder.GenericEvent(
+				schema,
+				v1.EventTypeNormal,
+				fmt.Sprintf("Resp [%s], Result [%s]", string(respCreatechema.PinotSuccessResponse.Status), result),
+				PinotSchemaControllerPatchStatusSuccess)
 			return controllerutil.OperationResultCreated, nil
+
 		} else {
-			result, err := r.makePatchPinotSchemaStatus(schema, PinotSchemaControllerCreateFail, string(respS.RespBody), v1.ConditionTrue, v1beta1.PinotSchemaCreateFail)
+			_, err := r.makePatchPinotSchemaStatus(
+				schema,
+				PinotSchemaControllerCreateFail,
+				string(respCreatechema.PinotErrorResponse.Error),
+				v1.ConditionTrue,
+				v1beta1.PinotSchemaCreateFail,
+			)
 			if err != nil {
 				return controllerutil.OperationResultNone, err
 			}
-			build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(respS.RespBody)), PinotSchemaControllerCreateFail)
-			build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s], Result [%s]", string(respS.RespBody), result), PinotSchemaControllerPatchStatusSuccess)
+			build.Recorder.GenericEvent(
+				schema,
+				v1.EventTypeWarning,
+				fmt.Sprintf("Resp [%s], Status", string(respCreatechema.PinotErrorResponse.Error)),
+				PinotSchemaControllerCreateFail,
+			)
 			return controllerutil.OperationResultCreated, nil
+
 		}
-	} else if resp.StatusCode == 200 { // schema exists, check for updates
+	} else if respGetSchema.StatusCode == 200 {
+
 		ok, err := utils.IsEqualJson(schema.Status.CurrentSchemasJson, schema.Spec.PinotSchemaJson)
 		if err != nil {
 			return controllerutil.OperationResultNone, err
@@ -205,26 +243,53 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 				[]byte(schema.Spec.PinotSchemaJson),
 				auth,
 			)
-			resp := postHttp.Do()
-			if resp.Err != nil {
+			respUpdateSchema := postHttp.Do()
+			if respUpdateSchema.Err != nil {
 				return controllerutil.OperationResultNone, err
 			}
-			if resp.StatusCode == 200 {
+			if respUpdateSchema.PinotSuccessResponse != (internalHTTP.PinotSuccessResponse{}) {
 				// patch status to store the current valid schema json
-				result, err := r.makePatchPinotSchemaStatus(schema, PinotSchemaControllerUpdateSuccess, string(resp.RespBody), v1.ConditionTrue, v1beta1.PinotSchemaUpdateSuccess)
+				result, err := r.makePatchPinotSchemaStatus(
+					schema,
+					PinotSchemaControllerUpdateSuccess,
+					string(respUpdateSchema.PinotSuccessResponse.Status),
+					v1.ConditionTrue,
+					v1beta1.PinotSchemaUpdateSuccess,
+				)
 				if err != nil {
 					return controllerutil.OperationResultNone, err
 				}
-				build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotSchemaControllerUpdateSuccess)
-				build.Recorder.GenericEvent(schema, v1.EventTypeNormal, fmt.Sprintf("Resp [%s], Result [%s]", string(resp.RespBody), result), PinotSchemaControllerPatchStatusSuccess)
+				build.Recorder.GenericEvent(
+					schema,
+					v1.EventTypeNormal,
+					fmt.Sprintf("Resp [%s]", string(respUpdateSchema.PinotSuccessResponse.Status)),
+					PinotSchemaControllerUpdateSuccess,
+				)
+				build.Recorder.GenericEvent(
+					schema,
+					v1.EventTypeNormal,
+					fmt.Sprintf("Resp [%s], Result [%s]", string(respUpdateSchema.PinotSuccessResponse.Status), result),
+					PinotSchemaControllerPatchStatusSuccess)
 				return controllerutil.OperationResultUpdated, nil
-			} else {
+
+			} else if respUpdateSchema.PinotErrorResponse != (internalHTTP.PinotErrorResponse{}) {
 				// patch status with failure and emit events
-				_, err := r.makePatchPinotSchemaStatus(schema, PinotSchemaControllerUpdateFail, string(resp.RespBody), v1.ConditionTrue, v1beta1.PinotSchemaUpdateFail)
+				_, err := r.makePatchPinotSchemaStatus(
+					schema,
+					PinotSchemaControllerUpdateFail,
+					string(respUpdateSchema.PinotErrorResponse.Error),
+					v1.ConditionTrue,
+					v1beta1.PinotSchemaUpdateFail,
+				)
 				if err != nil {
 					return controllerutil.OperationResultNone, err
 				}
-				build.Recorder.GenericEvent(schema, v1.EventTypeWarning, fmt.Sprintf("Resp [%s]", string(resp.RespBody)), PinotSchemaControllerUpdateFail)
+				build.Recorder.GenericEvent(
+					schema,
+					v1.EventTypeWarning,
+					fmt.Sprintf("Resp [%s], StatusCode [%d]", string(respUpdateSchema.PinotErrorResponse.Error), respUpdateSchema.PinotErrorResponse.Code),
+					PinotSchemaControllerUpdateFail,
+				)
 				return controllerutil.OperationResultNone, err
 			}
 		}
@@ -302,9 +367,9 @@ func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName 
 		svcName = svcList.Items[0].Name
 	}
 
-	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	_ = "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
-	return newName, nil
+	return "http://localhost:9000", nil
 }
 
 func (r *PinotSchemaReconciler) getAuthCreds(ctx context.Context, schema *v1beta1.PinotSchema) (internalHTTP.BasicAuth, error) {
