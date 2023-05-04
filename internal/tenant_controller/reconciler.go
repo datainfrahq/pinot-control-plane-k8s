@@ -17,7 +17,6 @@ package tenantcontroller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"net/http"
@@ -96,7 +95,7 @@ func (r *PinotTenantReconciler) do(ctx context.Context, tenant *v1beta1.PinotTen
 				return err
 			}
 
-			tenantName, err := getTenantName(tenant.Spec.PinotTenantsJson)
+			tenantName, err := utils.GetValueFromJson(tenant.Spec.PinotTenantsJson, utils.TenantName)
 			if err != nil {
 				return err
 			}
@@ -136,28 +135,6 @@ func (r *PinotTenantReconciler) do(ctx context.Context, tenant *v1beta1.PinotTen
 		}
 	}
 	return nil
-}
-
-func getTenantName(tenantsJson string) (string, error) {
-	var err error
-
-	schema := make(map[string]json.RawMessage)
-	if err = json.Unmarshal([]byte(tenantsJson), &schema); err != nil {
-		return "", err
-	}
-
-	return utils.TrimQuote(string(schema["tenantName"])), nil
-}
-
-func getRespCode(resp []byte) string {
-	var err error
-
-	respMap := make(map[string]json.RawMessage)
-	if err = json.Unmarshal(resp, &respMap); err != nil {
-		return ""
-	}
-
-	return utils.TrimQuote(string(respMap["code"]))
 }
 
 func makeControllerCreateUpdateTenantPath(svcName string) string { return svcName + "/tenants" }
@@ -201,7 +178,7 @@ func (r *PinotTenantReconciler) CreateOrUpdate(
 ) (controllerutil.OperationResult, error) {
 
 	// get tenant name
-	tenantName, err := getTenantName(tenant.Spec.PinotTenantsJson)
+	tenantName, err := utils.GetValueFromJson(tenant.Spec.PinotTenantsJson, utils.TenantName)
 	if err != nil {
 		return controllerutil.OperationResultNone, err
 	}

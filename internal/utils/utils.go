@@ -22,7 +22,7 @@ import (
 	"reflect"
 )
 
-func TrimQuote(s string) string {
+func trimQuote(s string) string {
 	if len(s) > 0 && s[0] == '"' {
 		s = s[1:]
 	}
@@ -47,4 +47,15 @@ func IsEqualJson(s1, s2 string) (bool, error) {
 	}
 
 	return reflect.DeepEqual(o1, o2), nil
+}
+
+func GetValueFromJson(jsonObject, key string) (string, error) {
+	var err error
+
+	mapJsonObject := make(map[string]json.RawMessage)
+	if err = json.Unmarshal([]byte(jsonObject), &mapJsonObject); err != nil {
+		return "", err
+	}
+
+	return trimQuote(string(mapJsonObject[key])), nil
 }

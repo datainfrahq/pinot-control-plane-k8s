@@ -44,7 +44,7 @@ type PinotSchemaReconciler struct {
 }
 
 func NewPinotSchemaReconciler(mgr ctrl.Manager) *PinotSchemaReconciler {
-	initLogger := ctrl.Log.WithName("controllers").WithName("pinot")
+	initLogger := ctrl.Log.WithName("controllers").WithName("pinot-schema")
 	return &PinotSchemaReconciler{
 		Client:        mgr.GetClient(),
 		Log:           initLogger,

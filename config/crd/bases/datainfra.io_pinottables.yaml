@@ -73,12 +73,17 @@ spec:
                 type: string
               reason:
                 type: string
+              reloadStatus:
+                items:
+                  type: string
+                type: array
               status:
                 type: string
               type:
                 type: string
             required:
             - currentTable.json
+            - reloadStatus
             type: object
         type: object
     served: true

@@ -51,6 +51,7 @@ type PinotTableStatus struct {
 	Message          string             `json:"message,omitempty"`
 	LastUpdateTime   metav1.Time        `json:"lastUpdateTime,omitempty"`
 	CurrentTableJson string             `json:"currentTable.json"`
+	ReloadStatus     []string           `json:"reloadStatus"`
 }
 
 // +kubebuilder:object:root=true
