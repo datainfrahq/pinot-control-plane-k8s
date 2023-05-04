@@ -380,9 +380,9 @@ func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName 
 		svcName = svcList.Items[0].Name
 	}
 
-	_ = "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
-	return "http://localhost:9000", nil
+	return newName, nil
 }
 
 func (r *PinotSchemaReconciler) getAuthCreds(ctx context.Context, schema *v1beta1.PinotSchema) (internalHTTP.BasicAuth, error) {

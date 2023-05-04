@@ -333,8 +333,8 @@ func (r *PinotTableReconciler) getControllerSvcUrl(namespace, pinotClusterName s
 		svcName = svcList.Items[0].Name
 	}
 
-	_ = "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
-	return "http://localhost:9000", nil
+	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	return newName, nil
 }
 
 func (r *PinotTableReconciler) makePatchPinotTableStatus(

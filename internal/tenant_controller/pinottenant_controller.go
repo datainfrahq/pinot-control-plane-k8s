@@ -45,7 +45,7 @@ type PinotTenantReconciler struct {
 }
 
 func NewPinotTenantReconciler(mgr ctrl.Manager) *PinotTenantReconciler {
-	initLogger := ctrl.Log.WithName("controllers").WithName("pinot")
+	initLogger := ctrl.Log.WithName("controllers").WithName("pinot-tenant")
 	return &PinotTenantReconciler{
 		Client:        mgr.GetClient(),
 		Log:           initLogger,

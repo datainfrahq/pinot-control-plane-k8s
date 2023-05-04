@@ -56,7 +56,7 @@ type PinotTableReconciler struct {
 }
 
 func NewPinotTableReconciler(mgr ctrl.Manager) *PinotTableReconciler {
-	initLogger := ctrl.Log.WithName("controllers").WithName("pinot")
+	initLogger := ctrl.Log.WithName("controllers").WithName("pinot-table")
 	return &PinotTableReconciler{
 		Client:        mgr.GetClient(),
 		Log:           initLogger,
