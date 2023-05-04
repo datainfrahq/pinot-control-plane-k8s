@@ -17,7 +17,6 @@ package schemacontroller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -55,6 +54,10 @@ const (
 
 const (
 	PinotControllerPort = "9000"
+)
+
+const (
+	schemaName = "schemaName"
 )
 
 func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSchema) error {
@@ -96,7 +99,7 @@ func (r *PinotSchemaReconciler) do(ctx context.Context, schema *v1beta1.PinotSch
 				return err
 			}
 
-			schemaName, err := getSchemaName(schema.Spec.PinotSchemaJson)
+			schemaName, err := utils.GetValueFromJson(schema.Spec.PinotSchemaJson, schemaName)
 			if err != nil {
 				return err
 			}
@@ -148,7 +151,7 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 ) (controllerutil.OperationResult, error) {
 
 	// get schema name
-	schemaName, err := getSchemaName(schema.Spec.PinotSchemaJson)
+	schemaName, err := utils.GetValueFromJson(schema.Spec.PinotSchemaJson, schemaName)
 	if err != nil {
 		return controllerutil.OperationResultNone, err
 	}
@@ -315,7 +318,7 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 				build.Recorder.GenericEvent(
 					schema,
 					v1.EventTypeWarning,
-					fmt.Sprintf("Resp [%s]", string(respGetSchema.ResponseBody)),
+					fmt.Sprintf("Resp [%s]", string(respUpdateSchema.ResponseBody)),
 					PinotSchemaControllerUpdateFail,
 				)
 				return controllerutil.OperationResultNone, err
@@ -326,17 +329,6 @@ func (r *PinotSchemaReconciler) CreateOrUpdate(
 	}
 
 	return controllerutil.OperationResultNone, nil
-}
-
-func getSchemaName(schemaJson string) (string, error) {
-	var err error
-
-	schema := make(map[string]json.RawMessage)
-	if err = json.Unmarshal([]byte(schemaJson), &schema); err != nil {
-		return "", err
-	}
-
-	return utils.TrimQuote(string(schema["schemaName"])), nil
 }
 
 func makeControllerCreateSchemaPath(svcName string) string { return svcName + "/schemas" }
@@ -388,9 +380,9 @@ func (r *PinotSchemaReconciler) getControllerSvcUrl(namespace, pinotClusterName 
 		svcName = svcList.Items[0].Name
 	}
 
-	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	_ = "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
 
-	return newName, nil
+	return "http://localhost:9000", nil
 }
 
 func (r *PinotSchemaReconciler) getAuthCreds(ctx context.Context, schema *v1beta1.PinotSchema) (internalHTTP.BasicAuth, error) {

@@ -30,6 +30,12 @@ Based on Kubernetes operators, this control plane for apache pinot is responsibl
 - Schema Management
 - Tenant Management (experimental)
 
+## Getting Started With Helm
+```
+helm repo add datainfra https://charts.datainfra.io
+helm upgrade --install pinot-control-plane datainfra/pinot-control-plane
+```
+
 ## :books: Documentation
 
 - [Getting Started With Heterogeneous Pinot Clusters](./examples/01-pinot-hetero/)

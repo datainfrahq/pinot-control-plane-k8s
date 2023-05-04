@@ -6,6 +6,7 @@ spec:
   pinotCluster: pinot-basic
   pinotSchema: airlinestats
   pinotTableType: REALTIME
+  segmentReload: true
   tables.json: |-
     {
       "tableName": "airlineStats",

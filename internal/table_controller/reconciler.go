@@ -18,7 +18,6 @@ package tablecontroller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -46,6 +45,7 @@ const (
 	PinotTableControllerUpdateFail         = "PinotTableControllerUpdateFail"
 	PinotTableControllerDeleteSuccess      = "PinotTableControllerDeleteSuccess"
 	PinotTableControllerDeleteFail         = "PinotTableControllerDeleteFail"
+	PinotTableReloadAllSegments            = "PinotTableReloadAllSegments"
 	PinotTableControllerFinalizer          = "pinottable.datainfra.io/finalizer"
 )
 
@@ -73,6 +73,7 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 	if err != nil {
 		return err
 	}
+
 	_, err = r.CreateOrUpdate(table, svcName, *build, internalHTTP.Auth{BasicAuth: basicAuth})
 	if err != nil {
 		return err
@@ -95,7 +96,7 @@ func (r *PinotTableReconciler) do(ctx context.Context, table *v1beta1.PinotTable
 				return err
 			}
 
-			tenantName, err := getTableName(table.Spec.PinotTablesJson)
+			tenantName, err := utils.GetValueFromJson(table.Spec.PinotTablesJson, utils.TableName)
 			if err != nil {
 				return err
 			}
@@ -145,7 +146,7 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 ) (controllerutil.OperationResult, error) {
 
 	// get table name
-	tableName, err := getTableName(table.Spec.PinotTablesJson)
+	tableName, err := utils.GetValueFromJson(table.Spec.PinotTablesJson, utils.TableName)
 	if err != nil {
 		return controllerutil.OperationResultNone, err
 	}
@@ -314,23 +315,6 @@ func (r *PinotTableReconciler) CreateOrUpdate(
 	return controllerutil.OperationResultNone, nil
 }
 
-func getTableName(tablesJson string) (string, error) {
-	var err error
-	table := make(map[string]json.RawMessage)
-
-	if err = json.Unmarshal([]byte(tablesJson), &table); err != nil {
-		return "", err
-	}
-
-	return utils.TrimQuote(string(table["tableName"])), nil
-}
-
-func makeControllerCreateTablePath(svcName string) string { return svcName + "/tables" }
-
-func makeControllerGetUpdateDeleteTablePath(svcName, tableName string) string {
-	return svcName + "/tables/" + tableName
-}
-
 func (r *PinotTableReconciler) getControllerSvcUrl(namespace, pinotClusterName string) (string, error) {
 	listOpts := []client.ListOption{
 		client.InNamespace(namespace),
@@ -349,8 +333,8 @@ func (r *PinotTableReconciler) getControllerSvcUrl(namespace, pinotClusterName s
 		svcName = svcList.Items[0].Name
 	}
 
-	newName := "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
-	return newName, nil
+	_ = "http://" + svcName + "." + namespace + ".svc.cluster.local:" + PinotControllerPort
+	return "http://localhost:9000", nil
 }
 
 func (r *PinotTableReconciler) makePatchPinotTableStatus(
@@ -370,6 +354,7 @@ func (r *PinotTableReconciler) makePatchPinotTableStatus(
 		in.Status.Reason = reason
 		in.Status.Status = status
 		in.Status.Type = pinotTableConditionType
+		in.Status.ReloadStatus = []string{}
 		return in
 	}); err != nil {
 		return controllerutil.OperationResultNone, err
