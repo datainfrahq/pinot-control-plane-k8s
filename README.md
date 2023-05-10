@@ -1,6 +1,6 @@
 <h2 align="center">
   <picture>
-    <img alt="DataInfra Logo" src="https://raw.githubusercontent.com/datainfrahq/.github/main/images/logo.svg" width="500" height="100">
+    <img alt="DataInfra Logo" src="https://raw.githubusercontent.com/datainfrahq/.github/main/images/pinot-operator.png" width="200" height="200">
   </picture>
   <br>
   Control Plane For Apache Pinot On Kubernetes
