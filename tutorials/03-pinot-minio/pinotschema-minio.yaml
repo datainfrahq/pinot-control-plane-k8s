@@ -3,7 +3,7 @@ kind: PinotSchema
 metadata:
   name: airlinestats
 spec:
-  pinotCluster: pinot-basic
+  pinotCluster: pinot-s3
   schema.json: |-
      {
         "metricFieldSpecs": [

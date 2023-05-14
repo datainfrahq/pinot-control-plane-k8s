@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-basic
+  name: pinot-simple
 spec:
 
   external:
@@ -82,7 +82,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: standard
         resources:
           requests:
             storage: 1Gi
@@ -123,7 +123,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: standard
         resources:
           requests:
             storage: 1Gi
@@ -168,7 +168,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: standard
         resources:
           requests:
             storage: 1Gi
@@ -208,7 +208,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: standard
         resources:
           requests:
             storage: 1Gi 
