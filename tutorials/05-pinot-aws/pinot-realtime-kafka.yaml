@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pinot-realtime-load-data-into-kafka
+  namespace: pinot
+spec:
+  template:
+    spec:
+      containers:
+        - name: loading-json-data-to-kafka
+          image: apachepinot/pinot:latest
+          args: [ "StreamAvroIntoKafka", "-avroFile", "examples/stream/airlineStats/rawdata/airlineStats_data.avro", "-kafkaTopic", "flights-realtime", "-kafkaBrokerList", "kafka:9092", "-zkAddress", "kafka-zookeeper:2181" ]
+        - name: loading-avro-data-to-kafka
+          image: apachepinot/pinot:latest
+          args: [ "StreamAvroIntoKafka", "-avroFile", "examples/stream/airlineStats/rawdata/airlineStats_data.avro", "-kafkaTopic", "flights-realtime-avro", "-kafkaBrokerList", "kafka:9092", "-zkAddress", "kafka-zookeeper:2181", "-outputFormat", "avro" ]
+      restartPolicy: OnFailure
+  backoffLimit: 3

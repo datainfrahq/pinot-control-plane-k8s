@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot
+  name: pinot-minion-stateless
 spec:
 
   external:
@@ -54,6 +54,12 @@ spec:
     - name: controller
       containerPort: 9000
       protocol: TCP
+    service:
+      type: LoadBalancer
+      ports:
+      - protocol: TCP
+        port: 9000
+        targetPort: 9000
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -64,13 +70,21 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: standard
         resources:
           requests:
             storage: 1Gi
 
   - name: broker
     serviceAccountName: "default"
+    service:
+      clusterIP: None
+      type: ClusterIP
+      ports:
+      - name: broker
+        port: 8099
+        protocol: TCP
+        targetPort: 8099
     port:
     - name: broker
       containerPort: 8099
@@ -87,6 +101,18 @@ spec:
     - name: server
       containerPort: 8097
       protocol: TCP
+    service:
+      type: ClusterIP
+      clusterIP: None
+      ports:
+      - name: netty
+        port: 8098
+        protocol: TCP
+        targetPort: 8098
+      - protocol: TCP
+        port: 80
+        targetPort: 8097
+        name: admin
     image: apachepinot/pinot:latest
     env:
     - name: LOG4J_CONSOLE_LEVEL
@@ -97,7 +123,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: standard
         resources:
           requests:
             storage: 1Gi
@@ -105,6 +131,13 @@ spec:
   - name: minion
     serviceAccountName: "default"
     image: apachepinot/pinot:latest
+    service:
+      clusterIP: None
+      type: ClusterIP
+      ports:
+      - protocol: TCP
+        port: 9514
+        targetPort: 9514
     port:
     - name: minion
       containerPort: 9514
