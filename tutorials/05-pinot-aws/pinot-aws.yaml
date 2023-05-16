@@ -115,7 +115,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: gp2
         resources:
           requests:
             storage: 10Gi
@@ -155,7 +155,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: gp2
         resources:
           requests:
             storage: 10Gi
@@ -199,7 +199,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: gp2
         resources:
           requests:
             storage: 10Gi
@@ -239,7 +239,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: gp2
         resources:
           requests:
             storage: 10Gi 

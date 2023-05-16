@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: Pinot
 metadata:
-  name: pinot-basic
+  name: pinot-minion-stateless
 spec:
 
   external:
@@ -20,8 +20,8 @@ spec:
       pinotNodeConfig: controller
     
     - name: pinot-broker
-      kind: Statefulset
-      replicas: 1
+      kind: Deployment
+      replicas: 2
       nodeType: broker
       k8sConfig: broker
       pinotNodeConfig: broker
@@ -34,7 +34,7 @@ spec:
       pinotNodeConfig: server
     
     - name: pinot-minion
-      kind: Statefulset
+      kind: Deployment
       replicas: 1
       nodeType: minion
       k8sConfig: minion
@@ -51,7 +51,7 @@ spec:
   - name: controller
     serviceAccountName: "default"
     port:
-    - name: controller 
+    - name: controller
       containerPort: 9000
       protocol: TCP
     service:
@@ -60,18 +60,6 @@ spec:
       - protocol: TCP
         port: 9000
         targetPort: 9000
-    livenessProbe:
-      initialDelaySeconds: 60
-      periodSeconds: 10
-      httpGet:
-        path: "/health"
-        port: 9000
-    readinessProbe:
-      initialDelaySeconds: 60
-      periodSeconds: 10
-      httpGet:
-        path: "/health"
-        port: 9000
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -82,29 +70,13 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: standard
         resources:
           requests:
             storage: 1Gi
 
   - name: broker
     serviceAccountName: "default"
-    port:
-    - name: broker 
-      containerPort: 8099
-      protocol: TCP
-    livenessProbe:
-      initialDelaySeconds: 60
-      periodSeconds: 10
-      httpGet:
-        path: "/health"
-        port: 8099
-    readinessProbe:
-      initialDelaySeconds: 60
-      periodSeconds: 10
-      httpGet:
-        path: "/health"
-        port: 8099
     service:
       clusterIP: None
       type: ClusterIP
@@ -113,40 +85,22 @@ spec:
         port: 8099
         protocol: TCP
         targetPort: 8099
+    port:
+    - name: broker
+      containerPort: 8099
+      protocol: TCP
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
     image: apachepinot/pinot:latest
-    storageConfig:
-    - name: broker
-      mountPath: "/var/pinot/broker/data"
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
-        resources:
-          requests:
-            storage: 1Gi
+
   
   - name: server
     serviceAccountName: "default"
     port:
-    - name: server 
+    - name: server
       containerPort: 8097
       protocol: TCP
-    image: apachepinot/pinot:latest
-    livenessProbe:
-      initialDelaySeconds: 60
-      periodSeconds: 10
-      httpGet:
-        path: "/health"
-        port: 8097
-    readinessProbe:
-      initialDelaySeconds: 60
-      periodSeconds: 10
-      httpGet:
-        path: "/health"
-        port: 8097
     service:
       type: ClusterIP
       clusterIP: None
@@ -159,6 +113,7 @@ spec:
         port: 80
         targetPort: 8097
         name: admin
+    image: apachepinot/pinot:latest
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
@@ -168,7 +123,7 @@ spec:
       spec:
         accessModes:
         - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
+        storageClassName: standard
         resources:
           requests:
             storage: 1Gi
@@ -176,18 +131,6 @@ spec:
   - name: minion
     serviceAccountName: "default"
     image: apachepinot/pinot:latest
-    livenessProbe:
-      initialDelaySeconds: 60
-      periodSeconds: 10
-      httpGet:
-        path: "/health"
-        port: 9514
-    readinessProbe:
-      initialDelaySeconds: 60
-      periodSeconds: 10
-      httpGet:
-        path: "/health"
-        port: 9514
     service:
       clusterIP: None
       type: ClusterIP
@@ -196,22 +139,18 @@ spec:
         port: 9514
         targetPort: 9514
     port:
-    - name: minion 
+    - name: minion
       containerPort: 9514
       protocol: TCP
     env:
     - name: LOG4J_CONSOLE_LEVEL
       value: info
-    storageConfig:
-    - name: minion
-      mountPath: "/var/pinot/minion/data"
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        storageClassName: ${STORAGE_CLASS_NAME}
-        resources:
-          requests:
-            storage: 1Gi 
+    volumeMount:
+      - mountPath: /var/pinot/minion/data
+        name: data
+    volumes:
+    - emptyDir: {}
+      name: data
 
   pinotNodeConfig:
 
