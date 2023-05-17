@@ -3,7 +3,7 @@ kind: PinotTable
 metadata:
   name: airlinestats
 spec:
-  pinotCluster: pinot-basic
+  pinotCluster: pinot-simple
   pinotSchema: airlinestats
   pinotTableType: REALTIME
   segmentReload: true
