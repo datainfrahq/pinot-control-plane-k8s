@@ -13,6 +13,7 @@
 ![Build Status](https://github.com/datainfrahq/pinot-control-plane-k8s/actions/workflows/makefile.yml/badge.svg) [![Slack](https://img.shields.io/badge/slack-brightgreen.svg?logo=slack&label=Community&style=flat&color=%2373DC8C&)](https://launchpass.com/datainfra-workspace)
 ![Docker pull](https://img.shields.io/docker/pulls/datainfrahq/pinot-control-plane.svg) 
 [![Go Reference](https://pkg.go.dev/badge/github.com/datainfrahq/operator-runtime.svg)](https://pkg.go.dev/github.com/datainfrahq/pinot-control-plane-k8s)
+[![Docs](https://img.shields.io/badge/stable%20docs-datainfra.io%2Fdocs-brightgreen?style=flat&color=%2373DC8C&label=Docs)](https://www.datainfra.io/docs/pinot-on-kubernetes)
 ![GitHub issues](https://img.shields.io/github/issues/datainfrahq/pinot-control-plane-k8s) [![Go Report Card](https://goreportcard.com/badge/github.com/datainfrahq/pinot-control-plane-k8s)](https://goreportcard.com/report/github.com/datainfrahq/pinot-control-plane-k8s)
 
 
@@ -30,53 +31,15 @@ Based on Kubernetes operators, this control plane for apache pinot is responsibl
 - Schema Management
 - Tenant Management (experimental)
 
-## Getting Started With Helm
-```
-helm repo add datainfra https://charts.datainfra.io
-helm upgrade --install pinot-control-plane datainfra/pinot-control-plane
-```
+## Documentation
 
-## :books: Documentation
-
-- [Getting Started With Heterogeneous Pinot Clusters](./examples/01-pinot-hetero/)
-- [Getting Started With Schema Management](./docs/pinot_schema_management.md)
-- [Getting Started With Table Management](./docs/pinot_table_management.md)
-- [Getting Started With Tenant Management](./docs/pinot_tenants_management.md)
-
-
-## :dart: Motivation
-
-We believe that Kubernetes can serve as a control plane for any application, including those with data and stateful sets. While Helm charts are useful for configuration management, they don't maintain the state of the application. That's why we've built a control plane based on kubernetes operator pattern that acts as a bridge between your application's requirements and Kubernetes infrastructure. 
-
-Pinot control plane for k8s is specifically designed to improve the user experience of running Apache Pinot clusters. As a distributed database, Pinot can be challenging to run on Kubernetes without the right tools. Our project is based on the [DSOI Spec](https://github.com/datainfrahq/dsoi-spec) and built using the [Operator-Runtime](https://github.com/datainfrahq/operator-runtime) library to provide a more user-friendly and Kubernetes-friendly experience.
-
-
+Refer to [docs](https://www.datainfra.io/docs/pinot-on-kubernetes)
 
 ## :stethoscope: Support
 
 - For questions and feedback please feel free to reach out to us on [Slack ↗︎](https://launchpass.com/datainfra-workspace).
 - For bugs, please create issue on [GitHub ↗︎](https://github.com/datainfrahq/pinot-control-plane-k8s/issues).
 - For commercial support and consultation, please reach out to us at [`hi@datainfra.io` ↗︎](mailto:hi@datainfra.io).
-
-
-## :question:	FAQ
-
-### Is this project a k8s operator or a control plane ?
-
-This project is based on the Kubernetes operator pattern, but it is not exclusively limited to this pattern. Given the complexity of Pinot, relying solely on Kubernetes operators may or may not be sufficient to effectively manage its operations. Our vision for the project is to create a comprehensive set of tools and utilities that enable seamless deployment and operation of Pinot on Kubernetes.
-
-### Helm Vs Operator
-
-Helm is configuration management tool, it does not maintain the state of the application. When building controllers, there is clear abstraction and concern on 
-
-- who is responsible for applying configuration ?
-- who is responsible for reconciling configuration ?
-
-Helm can template out any yaml, in our case its CR's/operator deployment etc. Once configs are applied its the responsibility of the underlying controllers to reconcile the configuration to achieve desired state.
-
-### Is this project based on state machines ?
-
-- The underlying controllers are based on conditions and NOT state machines. The status of objects is constructable by observation. This project is solely built on observed state, the underlying functions follow the k8s native pattern of ```CreateOrUpdate```. Each resource whether k8s native or in this case of pinot specific resources ie schema/table/tenant, is checked for existense, if not existed created else check for updates and updated. States taken into consideration are orginal, desired and current. 
 
 ## :trophy: Contributing
 
