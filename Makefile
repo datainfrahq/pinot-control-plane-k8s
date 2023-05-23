@@ -189,7 +189,7 @@ helm-install-zk-operator: ## helm upgrade/install
 	--create-namespace \
 	--version=${ZK_VERSION} \
 	--set replicas=1 \
-	--set persistence.storageClassName=${STORAGE_CLASS_NAME}
+	--set persistence.storageClassName=standard
 
 ## Helm deploy minio operator and minio
 .PHONY: helm-install-minio-operator
