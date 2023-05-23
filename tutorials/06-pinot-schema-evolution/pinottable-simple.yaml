@@ -1,0 +1,33 @@
+apiVersion: datainfra.io/v1beta1
+kind: PinotTable
+metadata:
+  name: airlinestats
+spec:
+  pinotCluster: pinot-simple
+  pinotSchema: baseballstats
+  pinotTableType: OFFLINE
+  segmentReload: true
+  tables.json: |-
+    {
+      "tableName": "baseballStats",
+      "tableType": "OFFLINE",
+      "segmentsConfig": {
+        "segmentPushType": "APPEND",
+        "segmentAssignmentStrategy": "BalanceNumSegmentAssignmentStrategy",
+        "schemaName": "baseballStats",
+        "replication": "1"
+      },
+      "tenants": {
+      },
+      "tableIndexConfig": {
+        "loadMode": "HEAP",
+        "invertedIndexColumns": [
+          "playerID",
+          "teamID"
+        ]
+      },
+      "metadata": {
+        "customConfigs": {
+        }
+      }
+    }

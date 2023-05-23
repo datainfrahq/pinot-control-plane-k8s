@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pinot-baseballstat-ingestion
+  namespace: pinot
+data:
+  pinot-baseballstat-ingestion.yml: |
+    executionFrameworkSpec:
+      name: 'standalone'
+      segmentGenerationJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentGenerationJobRunner'
+      segmentTarPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentTarPushJobRunner'
+      segmentUriPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentUriPushJobRunner'
+      segmentMetadataPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentMetadataPushJobRunner'
+    jobType: SegmentCreationAndTarPush
+    inputDirURI: 'examples/batch/baseballStats/rawdata'
+    includeFileNamePattern: 'glob:**/*.csv'
+    outputDirURI: '/var/pinot/server/data/segment'
+    overwriteOutput: true
+    pinotFSSpecs:
+      - 
+        scheme: file
+        className: org.apache.pinot.spi.filesystem.LocalPinotFS
+    recordReaderSpec:
+      dataFormat: 'csv'
+      className: 'org.apache.pinot.plugin.inputformat.csv.CSVRecordReader'
+      configClassName: 'org.apache.pinot.plugin.inputformat.csv.CSVRecordReaderConfig'
+      configs:
+    tableSpec:
+      tableName: 'baseballStats'
+      schemaURI: 'http://pinot-controller-controller-svc.pinot:9000/tables/baseballStats/schema'
+      tableConfigURI: 'http://pinot-controller-controller-svc.pinot:9000/tables/baseballStats'
+    # pinotClusterSpecs: defines the Pinot Cluster Access Point.
+    pinotClusterSpecs:
+      - # controllerURI: used to fetch table/schema information and data push.
+        # E.g. http://localhost:9000
+        controllerURI: 'http://pinot-controller-controller-svc.pinot:9000'
+    # pushJobSpec: defines segment push job related configuration.
+    pushJobSpec:
+      # pushAttempts: number of attempts for push job, default is 1, which means no retry.
+      pushAttempts: 2
+      # pushRetryIntervalMillis: retry wait Ms, default to 1 second.
+      pushRetryIntervalMillis: 1000
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pinot-baseballstat-job
+  namespace: pinot
+spec:
+  template:
+    spec:
+      containers:
+        - name: loading-data-to-pinot
+          image: apachepinot/pinot:latest
+          args: [ "LaunchDataIngestionJob", "-jobSpecFile", "/tmp/pinot-quick-start/pinot-baseballstat-ingestion.yml" ]
+          volumeMounts:
+          - name: pinot-baseballstat-ingestion
+            mountPath: /tmp/pinot-quick-start
+      restartPolicy: OnFailure
+      volumes:
+      - name: pinot-baseballstat-ingestion
+        configMap:
+          name: pinot-baseballstat-ingestion
