@@ -1,7 +1,7 @@
 apiVersion: datainfra.io/v1beta1
 kind: PinotTable
 metadata:
-  name: airlinestats
+  name: baseballstats
 spec:
   pinotCluster: pinot-simple
   pinotSchema: baseballstats
