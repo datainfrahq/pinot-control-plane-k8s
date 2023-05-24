@@ -108,6 +108,11 @@ spec:
         {
           "dataType": "STRING",
           "name": "playerName"
+        },
+        {
+          "name" : "yearsOfExperience",
+          "dataType" : "INT",
+          "defaultNullValue": 1
         }
       ],
       "schemaName": "baseballStats"
